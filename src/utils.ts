@@ -32,11 +32,11 @@ function _getTimeZoneOffsetInMs() {
 export let protectedTextPassword = ''
 protectedTextPassword = 'SmcqiZ5qQ9Vd8P9'
 
-function lskeyToDocid(lskey: string) {
+export function lskeyToDocid(lskey: string) {
   // protectedtext replaces @, so better not use it
   return 'cap_nn___gpx/' + lskey.replace('@', '__') + '.gpx'
 }
-function getProtectedTextURL(docid: string, get = true, cors = true, pass = undefined) {
+export function getProtectedTextURL(docid: string, get = true, cors = true, pass = undefined as undefined | true) {
   return (
     (cors ? 'https://cors.heeere.com/' : '') +
     'https://www.protectedtext.com/' +

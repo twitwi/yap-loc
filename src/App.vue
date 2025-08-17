@@ -39,6 +39,9 @@ const track = useTrackStore()
 </template>
 
 <style>
+:root {
+  --copied: #BFB;
+}
 #root {
   display: flex;
   flex-direction: column;

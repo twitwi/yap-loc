@@ -49,7 +49,7 @@ provide('location', location)
     padding: 1em;
   }
   &.copied a {
-    background: #BFB;
+    background: var(--copied);
   }
 }
 </style>

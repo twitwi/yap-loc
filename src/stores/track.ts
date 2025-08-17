@@ -1,4 +1,4 @@
-import { appendSharedContent, niceTimestamp, safeHTMLText } from "@/utils"
+import { appendSharedContent, getProtectedTextURL, lskeyToDocid, niceTimestamp, safeHTMLText } from "@/utils"
 import { defineStore } from "pinia"
 import { computed, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
@@ -16,6 +16,7 @@ export const useTrackStore = defineStore(
 
     const data = {
       lskey: ref(local.lastLSKey), // e.g. 25eb or 25eb@bob
+      startTime: ref(local.lastStartTime), // milliseconds epoch
       baseURL: ref(window.location.origin + window.location.pathname),
       logs: ref([] as DebugLog[])
     }
@@ -24,7 +25,8 @@ export const useTrackStore = defineStore(
 
       track: computed(() => data.lskey.value.split('@')[0]),
       gpxPath: computed((() => `gpx/${o.track.value}.gpx`) as () => string),
-      baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.track.value) as () => string),
+      baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.lskey.value) as () => string),
+      sharedURLlink: computed(() => getProtectedTextURL(lskeyToDocid(data.lskey.value), false, false, true)),
 
       contributeURL(lat: number, lon: number, ts: number) {
         let res = o.baseURLWithATrack.value
@@ -62,6 +64,11 @@ export const useTrackStore = defineStore(
     watchEffect(() => {
       if (o.lskey.value) {
         local.lastLSKey = o.lskey.value
+      }
+    })
+    watchEffect(() => {
+      if (o.startTime.value) {
+        local.lastStartTime = o.startTime.value
       }
     })
     return o

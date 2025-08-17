@@ -10,6 +10,7 @@ export const useLocalStore = defineStore(
       enableView: ref(false),
       enableBackup: ref(false),
       lastLSKey: ref(''),
+      lastStartTime: ref(0),
     }
     return o
   },
