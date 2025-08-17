@@ -3,6 +3,7 @@ import ShowMyLoc from '@/views/ShowMyLoc.vue'
 import TrackContrib from '@/views/TrackContrib.vue'
 import Config from '@/views/ConfigView.vue'
 import BackupView from '@/views/BackupView.vue'
+import TrackFollow from '@/views/TrackFollow.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -11,6 +12,11 @@ const router = createRouter({
       path: '/',
       name: 'show-my-loc',
       component: ShowMyLoc,
+    },
+    {
+      path: '/follow',
+      name: 'follow',
+      component: TrackFollow,
     },
     {
       path: '/contrib',

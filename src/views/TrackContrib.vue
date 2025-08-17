@@ -2,22 +2,14 @@
 import { useLocalStore } from '@/stores/persist'
 import { useTrackStore } from '@/stores/track'
 import { NButton } from 'naive-ui'
-import { onMounted } from 'vue'
-
 
 const track = useTrackStore()
 const local = useLocalStore()
 
-onMounted(() => {
-  if (track.lskey === '') {
-    track.setLSKey(local.lastLSKey)
-  }
-})
-
 function promptChangeLSKey() {
   const t = prompt('Enter lskey', local.lastLSKey)
   if (t !== null) {
-    track.setLSKey(t)
+    track.lskey = t
   }
 }
 

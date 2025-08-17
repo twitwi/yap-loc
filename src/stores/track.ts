@@ -12,8 +12,10 @@ export const useTrackStore = defineStore(
   'track',
   () => {
     // like setup() in a component
+    const local = useLocalStore()
+
     const data = {
-      lskey: ref(''), // e.g. 25eb or 25eb@bob
+      lskey: ref(local.lastLSKey), // e.g. 25eb or 25eb@bob
       baseURL: ref(window.location.origin + window.location.pathname),
       logs: ref([] as DebugLog[])
     }
@@ -23,12 +25,6 @@ export const useTrackStore = defineStore(
       track: computed(() => data.lskey.value.split('@')[0]),
       gpxPath: computed((() => `gpx/${o.track.value}.gpx`) as () => string),
       baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.track.value) as () => string),
-
-      setLSKey(k: string) {
-        const local = useLocalStore()
-        o.lskey.value = k
-        local.lastLSKey = k
-      },
 
       contributeURL(lat: number, lon: number, ts: number) {
         let res = o.baseURLWithATrack.value
@@ -65,11 +61,9 @@ export const useTrackStore = defineStore(
     }
     watchEffect(() => {
       if (o.lskey.value) {
-        const local = useLocalStore()
         local.lastLSKey = o.lskey.value
       }
     })
     return o
   },
 )
-
