@@ -33,7 +33,8 @@ export let protectedTextPassword = ''
 protectedTextPassword = 'SmcqiZ5qQ9Vd8P9'
 
 function lskeyToDocid(lskey: string) {
-  return 'cap_nn___' + lskey
+  // protectedtext replaces @, so better not use it
+  return 'cap_nn___gpx/' + lskey.replace('@', '__') + '.gpx'
 }
 function getProtectedTextURL(docid: string, get = true, cors = true, pass = undefined) {
   return (
