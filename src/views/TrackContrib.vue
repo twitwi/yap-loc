@@ -26,8 +26,8 @@ function promptChangeTrack() {
 <template>
   <div class="main-contrib">
     <div style="display: flex; flex-direction: column;">
-      <NButton @click="track.contributeDeviceLocation()">Contribute location <span v-if="track.lskey"> ({{ track.lskey }})</span></NButton>
       <code style="font-size: 25px; text-align: center;" @click="promptChangeTrack()">{{ track.track || '(( not set ))' }}</code>
+      <NButton @click="track.contributeDeviceLocation()">Contribute location <span v-if="track.lskey"> ({{ track.lskey }})</span></NButton>
     </div>
     <ul class="debug-logs">
       <li v-for="l,il in track.logs.slice().reverse()" :key="il" :class="l.class">{{ l.text }}</li>

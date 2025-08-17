@@ -4,11 +4,30 @@ export function safeHTMLText(txt: string) {
   return new Option(txt).innerHTML
 }
 
+export function niceTimestamp(sec: number) {
+  const res = timestampToDatetimeInputString(sec * 1000)
+  return res.replace(/(T|:\d\d\..*)/g, ' ')
+}
+
+export function timestampToDatetimeInputString(timestamp: number) {
+  const date = new Date(timestamp + _getTimeZoneOffsetInMs())
+  // slice(0, 19) includes seconds
+  return date.toISOString().slice(0, 19)
+}
+
+function _getTimeZoneOffsetInMs() {
+  return new Date().getTimezoneOffset() * -60 * 1000
+}
+
+
+
 // =============== protectedtex ============
 /* Need
     <script src="https://www.protectedtext.com/js/sha512.js"></script>
     <script src="https://www.protectedtext.com/js/aes.js"></script>
-  NB: we also use a CORS proxy at heeere.com that has a yes-list of only a few servers (including localhost:7777 and the github of the 3 renards) -->
+  NB: custom wrapped in protectedtext/cryptojs.ts
+  NB: we also use a CORS proxy at heeere.com that has a yes-list of only a few servers (including localhost:7777 and the github of the 3 renards)
+  NB: can get rate limited
 */
 export let protectedTextPassword = ''
 protectedTextPassword = 'SmcqiZ5qQ9Vd8P9'
@@ -25,7 +44,7 @@ function getProtectedTextURL(docid: string, get = true, cors = true, pass = unde
     (pass === true ? '?' + protectedTextPassword : pass ? '?' + pass : '')
   )
 }
-export async function appendSharedContent(lskey: string, v: string, pass: string) {
+export async function appendSharedContent(lskey: string, v: string, pass = protectedTextPassword) {
   return await getSharedContent(lskey, pass, v)
 }
 export async function getSharedContent(lskey: string, pass = protectedTextPassword, alsoAppendValue?: string) {

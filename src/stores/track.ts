@@ -1,4 +1,4 @@
-import { safeHTMLText } from "@/utils"
+import { appendSharedContent, niceTimestamp, safeHTMLText } from "@/utils"
 import { defineStore } from "pinia"
 import { computed, ref } from "vue"
 import { useLocalStore } from "./persist"
@@ -41,12 +41,10 @@ export const useTrackStore = defineStore(
           const ts = Math.round(pos.timestamp/1000)
           const url = this.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
           data.logs.value.push({ class: 'pending', text: url })
-          /* TODO
           await appendSharedContent(
-            this.lskey,
-            this.niceTimestamp(ts) + "\n" + url + "\n"
+            data.lskey.value,
+            niceTimestamp(ts) + "\n" + url + "\n"
           );
-          */
           if (data.logs.value.slice(-1)[0].text === url) {
             data.logs.value.splice(-1, 1);
           }
