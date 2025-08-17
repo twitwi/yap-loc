@@ -1,20 +1,8 @@
+import { CryptoJS } from "./protectedtext/cryptojs"
+
 export function safeHTMLText(txt: string) {
   return new Option(txt).innerHTML
 }
-
-
-export type CryptoJSType = {
-  SHA512: (txt: string) => object
-  AES: {
-    encrypt: (...args: string[]) => object
-    decrypt: (...args: string[]) => {toString: (o: object) => string}
-  }
-  enc: {
-    Utf8: object,
-  }
-}
-
-export const CryptoJS = (globalThis as unknown as Record<"CryptoJS", CryptoJSType>).CryptoJS
 
 // =============== protectedtex ============
 /* Need
