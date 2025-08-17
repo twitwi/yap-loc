@@ -5,12 +5,13 @@ export const useLocalStore = defineStore(
   'local',
   () => {
     // like setup() in a component
-    return {
+    const o = {
       enableContrib: ref(false),
       enableView: ref(false),
       enableBackup: ref(false),
-      lastTrack: ref(''),
+      lastLSKey: ref(''),
     }
+    return o
   },
   {
     persist: { key: import.meta.env.VITE_LS_LOCAL_KEY }, // persisted in localStorage

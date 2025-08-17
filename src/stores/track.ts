@@ -1,6 +1,6 @@
 import { appendSharedContent, niceTimestamp, safeHTMLText } from "@/utils"
 import { defineStore } from "pinia"
-import { computed, ref } from "vue"
+import { computed, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
 
 export type DebugLog = {
@@ -13,20 +13,21 @@ export const useTrackStore = defineStore(
   () => {
     // like setup() in a component
     const data = {
-      lskey: ref(''),
-      track: ref(''),
+      lskey: ref(''), // e.g. 25eb or 25eb@bob
       baseURL: ref(window.location.origin + window.location.pathname),
       logs: ref([] as DebugLog[])
     }
     const o = {
       ...data,
 
-      baseURLWithATrack: computed(() => data.baseURL.value + '?A=' + data.track.value),
+      track: computed(() => data.lskey.value.split('@')[0]),
+      gpxPath: computed((() => `gpx/${o.track.value}.gpx`) as () => string),
+      baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.track.value) as () => string),
 
-      setTrack(t: string) {
+      setLSKey(k: string) {
         const local = useLocalStore()
-        data.track.value = t
-        local.lastTrack = t
+        o.lskey.value = k
+        local.lastLSKey = k
       },
 
       contributeURL(lat: number, lon: number, ts: number) {
@@ -38,21 +39,18 @@ export const useTrackStore = defineStore(
       async contributeDeviceLocation() {
         try {
           const pos = await this.getDeviceLocation()
-          const ts = Math.round(pos.timestamp/1000)
+          const ts = Math.round(pos.timestamp / 1000)
           const url = this.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
           data.logs.value.push({ class: 'pending', text: url })
-          await appendSharedContent(
-            data.lskey.value,
-            niceTimestamp(ts) + "\n" + url + "\n"
-          );
+          await appendSharedContent(o.lskey.value, niceTimestamp(ts) + '\n' + url + '\n')
           if (data.logs.value.slice(-1)[0].text === url) {
-            data.logs.value.splice(-1, 1);
+            data.logs.value.splice(-1, 1)
           }
           data.logs.value.push({ class: 'done', text: url })
         } catch (e) {
           const ee = e as Record<string, string>
           data.logs.value.push({ class: 'error', text: safeHTMLText(ee.message) })
-        };
+        }
       },
 
       /*async*/ getDeviceLocation() {
@@ -64,8 +62,13 @@ export const useTrackStore = defineStore(
           })
         })
       },
-
     }
+    watchEffect(() => {
+      if (o.lskey.value) {
+        const local = useLocalStore()
+        local.lastLSKey = o.lskey.value
+      }
+    })
     return o
   },
 )

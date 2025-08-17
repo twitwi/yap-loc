@@ -9,15 +9,15 @@ const track = useTrackStore()
 const local = useLocalStore()
 
 onMounted(() => {
-  if (track.track === '') {
-    track.setTrack(local.lastTrack)
+  if (track.lskey === '') {
+    track.setLSKey(local.lastLSKey)
   }
 })
 
-function promptChangeTrack() {
-  const t = prompt('Enter track name', local.lastTrack)
+function promptChangeLSKey() {
+  const t = prompt('Enter lskey', local.lastLSKey)
   if (t !== null) {
-    track.setTrack(t)
+    track.setLSKey(t)
   }
 }
 
@@ -26,7 +26,7 @@ function promptChangeTrack() {
 <template>
   <div class="main-contrib">
     <div style="display: flex; flex-direction: column;">
-      <code style="font-size: 25px; text-align: center;" @click="promptChangeTrack()">{{ track.track || '(( not set ))' }}</code>
+      <code style="font-size: 25px; text-align: center;" @click="promptChangeLSKey()">{{ track.track || '(( not set ))' }}</code>
       <NButton @click="track.contributeDeviceLocation()">Contribute location <span v-if="track.lskey"> ({{ track.lskey }})</span></NButton>
     </div>
     <ul class="debug-logs">
