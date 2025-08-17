@@ -2,6 +2,6 @@
 
 yap-Loc is a location app to get your location in case of emergency or in case of tracking during a day out, offline-first.
 
-See also [yap-Applications](../yap-applications) for more information and applications.
+For more information and applications, see [👁️](https://apps.heeere.com/) [🐙](https://github.com/twitwi/yap-applications) [🏔️](https://codeberg.org/twitwi/yap-applications)
 
 
