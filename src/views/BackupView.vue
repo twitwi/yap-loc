@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { getSharedContent } from '@/utils';
 import { DownloadForOfflineOutlined } from '@vicons/material';
-import { NIcon } from 'naive-ui';
-import { onMounted, ref } from 'vue';
+import { NButton, NIcon } from 'naive-ui';
+import { ref } from 'vue';
 
 
 
 const all = ref([
 //'22annecy42',
-'22breizh42',
+//'22breizh42',
 //'22cenis',
 //'22eb149',
 //'22lst75',
@@ -35,19 +35,25 @@ const all = ref([
 'tmt22-26km',
 ])
 
-const status = ref('getting content')
+const status = ref('waiting')
 const allContent = ref([] as string[])
+const delay = 400
 
-onMounted(async () => {
+async function start() {
+  if (status.value !== 'waiting') {
+    return
+  }
+  status.value = 'getting content'
   for (const g of all.value) {
     try {
       allContent.value.push(await getSharedContent(`gpx/${g}.gpx`) ?? '((undefined))')
     } catch {
       allContent.value.push('((no reply))')
     }
+    await new Promise(resolve => setTimeout(resolve, delay))
   }
   status.value = 'done'
-})
+}
 
 function download(i: number) {
   const g = all.value[i]
@@ -71,7 +77,7 @@ function downloadAll() {
 
 <template>
   <div class="main-backup">
-    <code>{{ status }}</code>
+    <NButton @click="start()" >Start</NButton><code>{{ status }}</code>
     <template v-for="g,ig in all" :key="g">
       <h4>{{ g }} <NIcon v-if="allContent[ig]" @click="download(ig)" :title="allContent[ig]" :class="{ pb: allContent[ig].startsWith('((')}"><DownloadForOfflineOutlined /></NIcon></h4>
     </template>
