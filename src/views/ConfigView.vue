@@ -17,6 +17,10 @@ const local = useLocalStore()
         Enable Contrib
         <NSwitch v-model:value="local.enableContrib" :round="false"></NSwitch>
       </NSpace>
+      <NSpace>
+        Enable Backup
+        <NSwitch v-model:value="local.enableBackup" :round="false"></NSwitch>
+      </NSpace>
     </NCard>
   </div>
 </template>

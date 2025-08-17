@@ -52,7 +52,8 @@ export const useTrackStore = defineStore(
           }
           data.logs.value.push({ class: 'done', text: url })
         } catch (e) {
-          data.logs.value.push({ class: 'error', text: safeHTMLText(e.message) })
+          const ee = e as Record<string, string>
+          data.logs.value.push({ class: 'error', text: safeHTMLText(ee.message) })
         };
       },
 

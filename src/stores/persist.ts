@@ -8,6 +8,7 @@ export const useLocalStore = defineStore(
     return {
       enableContrib: ref(false),
       enableView: ref(false),
+      enableBackup: ref(false),
       lastTrack: ref(''),
     }
   },
