@@ -17,7 +17,6 @@ const root = ref(undefined as HTMLElement | undefined)
 const location = inject('location') as Ref<GeolocationPosition | undefined>
 
 const url = computed(() => {
-  console.log(location)
   if (location.value === undefined) {
     return ''
   }

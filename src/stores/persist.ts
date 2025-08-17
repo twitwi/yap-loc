@@ -6,7 +6,9 @@ export const useLocalStore = defineStore(
   () => {
     // like setup() in a component
     return {
-      userName: ref('bob'),
+      enableContrib: ref(false),
+      enableView: ref(false),
+      lastTrack: ref(''),
     }
   },
   {

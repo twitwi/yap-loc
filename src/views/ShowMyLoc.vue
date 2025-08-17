@@ -1,13 +1,14 @@
 <script setup lang="ts">
 
 import URL from '@/components/URL.vue'
-import { getDeviceLocation } from '@/tools'
+import { useTrackStore } from '@/stores/track'
 import { ref, onMounted, provide } from 'vue'
 
+const track = useTrackStore()
 const location = ref(undefined as GeolocationPosition | undefined)
 
 onMounted(async () => {
-  location.value = await getDeviceLocation()
+  location.value = await track.getDeviceLocation()
 })
 
 provide('location', location)
