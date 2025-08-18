@@ -56,6 +56,10 @@ function promptClearLocalPoints() {
         <NSwitch v-model:value="local.importSharedPoints" :round="false"></NSwitch>
       </NSpace>
       <NSpace>
+        Use start time in shared points
+        <NSwitch v-model:value="local.importSharedStart" :round="false"></NSwitch>
+      </NSpace>
+      <NSpace>
         Share new points
         <NSwitch v-model:value="local.shareNewPoints" :round="false"></NSwitch>
       </NSpace>

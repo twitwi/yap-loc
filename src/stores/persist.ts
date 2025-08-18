@@ -21,6 +21,7 @@ export const useLocalStore = defineStore(
       tileFormat: ref('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'),
       //
       importSharedPoints: ref(true),
+      importSharedStart: ref(true),
       shareNewPoints: ref(true),
       points: ref({} as Record<string, TimedPoint[]>),
       //

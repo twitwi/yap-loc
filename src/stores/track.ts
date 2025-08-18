@@ -214,6 +214,9 @@ export const useTrackStore = defineStore(
               if (res.map((p) => p.ts).indexOf(ts) === -1) {
                 res.push(parseTimedPoint (`${ts}`, p.lat, p.lon))
               }
+              if ('start' in p && local.importSharedStart) {
+                o.startTime.value = guessTimestamp(p.start)
+              }
             }
           }
           local.points[data.lskey.value] = res
