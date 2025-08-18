@@ -6,12 +6,44 @@ import { bindRouterLink, getTheme } from './main-naiveui'
 import { AddLocationAltTwotone, DownloadTwotone, MyLocationRound, RouteTwotone, SettingsSuggestTwotone } from '@vicons/material'
 import { useLocalStore } from './stores/persist'
 import { useTrackStore } from './stores/track'
+import { onMounted } from 'vue'
+import { appendSharedContent, countKeysAmong, getURLParams, guessTimestamp, niceTimestamp } from './utils'
+import router from './router'
 
 const color = import.meta.env.VITE_THEME_HEXCOLOR
 const theme = getTheme(color)
 
 const local = useLocalStore()
 const track = useTrackStore()
+
+onMounted(async () => {
+  // TODO: could move and refactor with other use of getShared....
+  // digest url, for sharing etc
+
+  const p = getURLParams()
+  if ('lskey' in p) {
+    track.lskey = p.lskey
+  }
+  if ('start' in p) {
+    track.startTime = guessTimestamp(p.start)
+  }
+  if ('contrib' in p) {
+    router.replace('contrib')
+    return
+  }
+  if (countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints) {
+     const ts = guessTimestamp(p.at)
+    try {
+      await appendSharedContent(
+        track.lskey,
+        niceTimestamp(ts) + "\n" + window.location.toString().replace(/#.*/, '') + "\n"
+      )
+    } catch (e) {
+      // e.g. cors limitations
+      console.log("APPEND SHARED FAILED", e)
+    }
+  }
+})
 
 </script>
 

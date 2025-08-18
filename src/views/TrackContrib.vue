@@ -71,6 +71,7 @@ async function copySMSURL() {
         <li>
           View/Edit shared points: <a :href="track.sharedURLlink" target="_blank">{{ track.sharedURLlink }}</a>
         </li>
+        <li>Points ({{ local.points[track.lskey]?.length }}): more config (sharing, clearing): <RouterLink to="config">config</RouterLink></li>
       </ul>
     </details>
     <hr />
