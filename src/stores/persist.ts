@@ -12,6 +12,8 @@ export const useLocalStore = defineStore(
       enableView: ref(false),
       enableBackup: ref(false),
       //
+      pendingContrib: ref([] as string[]),
+      //
       lastLSKey: ref(''),
       lastStartTime: ref(0),
       lastRoute: ref(''),

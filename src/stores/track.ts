@@ -52,15 +52,42 @@ export const useTrackStore = defineStore(
 
       async contributeDeviceLocation() {
         try {
-          const pos = await this.getDeviceLocation()
+          const pos = await o.getDeviceLocation()
           const ts = Math.round(pos.timestamp / 1000)
-          const url = this.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
+          const url = o.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
           data.logs.value.push({ class: 'pending', text: url })
-          await appendSharedContent(o.lskey.value, niceTimestamp(ts * 1000) + '\n' + url + '\n')
-          if (data.logs.value.slice(-1)[0].text === url) {
-            data.logs.value.splice(-1, 1)
+          const chunk = niceTimestamp(ts * 1000) + '\n' + url + '\n'
+          try {
+            await appendSharedContent(o.lskey.value, chunk)
+            if (data.logs.value.slice(-1)[0].text === url) {
+              data.logs.value.splice(-1, 1)
+            }
+            data.logs.value.push({ class: 'done', text: url })
+          } catch (e) {
+            local.pendingContrib.push(chunk)
+            const ee = e as Record<string, string>
+            data.logs.value.push({ class: 'error pending', text: safeHTMLText(ee.message) + '… saved as pending' })
           }
-          data.logs.value.push({ class: 'done', text: url })
+        } catch (e) {
+          const ee = e as Record<string, string>
+          data.logs.value.push({ class: 'error', text: safeHTMLText(ee.message) })
+        }
+      },
+
+      async sendPendingContrib() {
+        const l = local.pendingContrib.length
+        if (l === 0) {
+          return
+        }
+        const chunks = local.pendingContrib.join('\n')
+        try {
+          await appendSharedContent(o.lskey.value, chunks)
+          if (l !== local.pendingContrib.length) {
+            data.logs.value.push({ class: 'error', text: `${l} pending contributions sent but size changed so we might loose last contrib?` })
+          } else {
+            data.logs.value.push({ class: 'done', text: `${l} pending contributions sent.` })
+          }
+          local.pendingContrib.splice(0, l)
         } catch (e) {
           const ee = e as Record<string, string>
           data.logs.value.push({ class: 'error', text: safeHTMLText(ee.message) })
@@ -122,7 +149,7 @@ export const useTrackStore = defineStore(
           }
         }
         if (local.lastRoute) {
-          router.replace(local.lastRoute)
+          router.replace({ name: local.lastRoute })
         }
       },
 

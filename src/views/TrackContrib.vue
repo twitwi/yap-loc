@@ -48,6 +48,13 @@ async function copySMSURL() {
   setTimeout(() => smsElement.value!.classList.remove('copied'), 500)
 }
 
+function promptClearPendingContrib() {
+  const pending = local.pendingContrib.length
+  if (pending > 0 && confirm(`Are you sure you want to clear the ${pending} pending contributions?`)) {
+    local.pendingContrib.splice(0, pending)
+  }
+}
+
 </script>
 
 <template>
@@ -62,6 +69,11 @@ async function copySMSURL() {
       <li v-for="l, il in track.logs.slice().reverse()" :key="il" :class="l.class">{{ l.text }}</li>
     </ul>
     <hr style="margin-top: 10em" />
+    <details v-if="local.pendingContrib.length > 0" open>
+      <summary>Pending contribs ({{ local.pendingContrib.length }})</summary>
+      <NButton type="warning" @click="promptClearPendingContrib()">Clear ({{ local.pendingContrib.length }}) pending points</NButton>
+      <NButton type="info" @click="track.sendPendingContrib()">Send ({{ local.pendingContrib.length }}) pending points</NButton>
+    </details>
     <details open>
       <summary>Links</summary>
       <ul>
@@ -112,6 +124,10 @@ async function copySMSURL() {
 
   li.pending {
     border-color: yellow;
+  }
+
+  li.error.pending {
+    border-color: darkorchid;
   }
 
   li.done {
