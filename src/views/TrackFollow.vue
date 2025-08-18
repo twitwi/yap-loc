@@ -217,10 +217,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
           <thead>
             <tr>
               <th>Heure</th>
-              <th>Latitude</th>
-              <th>Longitude</th>
               <th v-if="tableHasPessimisticColumn">Au pire</th>
               <th :colspan="tableHasPessimisticColumn ? 1 : 2">Au mieux</th>
+              <th>Lat,Lon</th>
             </tr>
             </thead>
           <tbody>
@@ -229,8 +228,6 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
                 <i>(start)</i>
                 {{ niceTimestamp(r.ts) }}
               </td>
-              <td>{{ r.lat }}</td>
-              <td>{{ r.lon }}</td>
               <td v-if="r.distAlt">
                 {{ Math.round(r.distAlt) }}km, {{ Math.round(r.dplusAlt!) }}D+ ({{
                   r.velAlt!.toFixed(1)
@@ -246,6 +243,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
                 }}{{ff}}/h)
               </td>
               <td v-else :colspan="2"></td>
+              <td class="latlon">{{ r.lat }}, {{  r.lon }}</td>
             </tr>
           </tbody>
         </table>
@@ -325,6 +323,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
     padding-left: 1em;
     padding-right: 1em;
     text-align: center;
+  }
+  td.latlon {
+    font-size: 0.6em;
   }
   table {
     margin: auto;
