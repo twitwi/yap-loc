@@ -33,6 +33,9 @@ function promptClearLocalPoints() {
         <NFormItem label="Current Track">
           <p>{{ track.track }}</p>
         </NFormItem>
+        <NFormItem label="Last tab">
+          <NInput v-model:value="local.lastRoute"></NInput>
+        </NFormItem>
       </NForm>
       <NSpace>
         Enable View

@@ -4,6 +4,7 @@ import { computed, markRaw, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
 import type GpxParser from "gpxparser"
 import { computeCumulatedDPlus } from "@/utils-analyze"
+import router from "@/router"
 
 export type DebugLog = {
   text: string
@@ -97,6 +98,34 @@ export const useTrackStore = defineStore(
           console.log("GET SHARED FAILED", e)
         }
       },
+
+      async digestURL() {
+        // digest url, for sharing etc
+
+        const p = getURLParams()
+        if ('lskey' in p) {
+          data.lskey.value = p.lskey
+        }
+        if ('start' in p) {
+          data.startTime.value = guessTimestamp(p.start)
+        }
+        if (countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints) {
+          const ts = guessTimestamp(p.at)
+          try {
+            await appendSharedContent(
+              data.lskey.value,
+              niceTimestamp(ts) + "\n" + window.location.toString().replace(/#.*/, '') + "\n"
+            )
+          } catch (e) {
+            // e.g. cors limitations
+            console.log("APPEND SHARED FAILED", e)
+          }
+        }
+        if (local.lastRoute) {
+          router.replace(local.lastRoute)
+        }
+      },
+
     }
     watchEffect(() => {
       if (o.lskey.value) {
@@ -111,6 +140,12 @@ export const useTrackStore = defineStore(
     watchEffect(async () => {
       const gpxPath = o.gpxPath.value as string
       o.gpxContent.value = markRaw(await loadGpx(gpxPath) as GpxParser)
+    })
+    router.afterEach(ev => {
+      if (ev.name?.toString() === 'config') {
+        return
+      }
+      local.lastRoute = ev.name?.toString() ?? ''
     })
 
     if (local.importSharedPoints) {
