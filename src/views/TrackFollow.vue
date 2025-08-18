@@ -37,7 +37,7 @@ type MarkerDescription = {
 }
 const estimateMarkers = ref([] as MarkerDescription[])
 
-watchEffect(() => {
+function maybeAddEndAsEstimate() {
   if (estimateMarkers.value.length === 0 && track.gpxContent) {
     const t = track.gpxContent.tracks[0]
     const p = t.points.slice(-1)[0]
@@ -49,7 +49,8 @@ watchEffect(() => {
       info: `END: ${formatDistDPlus(dist, dplus)}<br/>ETA:`
     } as MarkerDescription)
   }
-})
+}
+watchEffect(maybeAddEndAsEstimate)
 
 const reportedMarkers = computed(() => {
   const trac = track.gpxContent?.tracks[0] as Track
@@ -93,7 +94,7 @@ function fitGpx() {
 
 watchEffect(fitGpx)
 
-function maybeAddEndAsEstimate() { // TODO wrong name? where is this feature?
+watchEffect(() => {
   if (polyline.value) {
     polyline.value.addEventListener('click', (ev: LeafletMouseEvent) => {
       estimateMarkers.value.push({
@@ -103,9 +104,7 @@ function maybeAddEndAsEstimate() { // TODO wrong name? where is this feature?
       })
     })
   }
-}
-watchEffect(maybeAddEndAsEstimate)
-maybeAddEndAsEstimate()
+})
 
 function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[], redo = true) {
   const el = e.getElement()
