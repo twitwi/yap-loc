@@ -6,11 +6,26 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { VitePWA } from 'vite-plugin-pwa'
 
+function includesAny(v:string, ...choices:string[]): boolean {
+  return choices.some(c => v.includes(c))
+}
+
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd())
   console.log('Starting app: ', env.VITE_APP_TITLE)
   return {
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: function (id) {
+            if (id.includes('node_module') && includesAny(id, 'naive-ui', 'pinia', 'vue', 'leaflet', 'gpxparser', 'sprintf', 'colorjs')) {
+              return 'base'
+            }
+          },
+        },
+      },
+    },
     plugins: [
       vue(),
       vueJsx(),
