@@ -41,7 +41,8 @@ export async function loadGpx(path: string) {
     throw new Error(`Cannot load gpx ${path}: ${req.status}`)
   }
   const gpx = new gpxParser()
-  gpx.parse(await req.text())
+  const gpxText = await req.text()
+  gpx.parse(gpxText)
   return gpx
 }
 

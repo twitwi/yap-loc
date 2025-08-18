@@ -221,7 +221,7 @@ export const useTrackStore = defineStore(
           }
           local.points[data.lskey.value] = res
         } catch (e) {
-          // e.g. cors limitations
+          // e.g. cors limitations, no network
           console.log("GET SHARED FAILED", e)
         }
       },
