@@ -3,12 +3,27 @@ import { defineStore } from "pinia"
 import { computed, markRaw, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
 import type GpxParser from "gpxparser"
-import { computeCumulatedDPlus } from "@/utils-analyze"
+import { computeCumulatedDPlus, representerNearestPointsInTrack } from "@/utils-analyze"
 import router from "@/router"
 
 export type DebugLog = {
   text: string
   class?: string
+}
+
+export type TableRow = {
+  ts: number
+  lat: number
+  lon: number
+  start?: boolean
+  elapsed: number
+  dist: number
+  dplus: number
+  vel: number
+  // for alternative possibility
+  distAlt?: number
+  dplusAlt?: number
+  velAlt?: number
 }
 
 export const useTrackStore = defineStore(
@@ -31,18 +46,100 @@ export const useTrackStore = defineStore(
       gpxPath: computed((() => `gpx/${o.track.value}.gpx`) as () => string),
       baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.lskey.value) as () => string),
       sharedURLlink: computed(() => getProtectedTextURL(lskeyToDocid(data.lskey.value), false, false, true)),
-      cumulatedDistance: computed(() => {
-        if (data.gpxContent.value === undefined || data.gpxContent.value.tracks[0] === undefined) {
-          return [] as number[]
-        }
-        return data.gpxContent.value.tracks[0].distance.cumul as unknown as number[]
-      }),
-      cumulatedDPlus: computed(() => {
-        if (data.gpxContent.value === undefined) {
+      firstGpxTrack: computed(() => data.gpxContent.value?.tracks?.[0]),
+      cumulatedDistance: computed((() => {
+        if (!o.firstGpxTrack.value) {
           return []
         }
-        return computeCumulatedDPlus(data.gpxContent.value?.tracks[0])
-      }),
+        return o.firstGpxTrack.value.distance.cumul
+      }) as () => number[]),
+      cumulatedDPlus: computed((() => {
+        if (!o.firstGpxTrack.value) {
+          return []
+        }
+        return computeCumulatedDPlus(o.firstGpxTrack.value)
+      }) as () => number[]),
+      tableRows: computed((() => {
+        if (!o.firstGpxTrack.value) {
+          return []
+        }
+        const cumulatedDistance = o.cumulatedDistance.value
+        const cumulatedDPlus = o.cumulatedDPlus.value
+        const startTime = o.startTime.value
+        const track = o.firstGpxTrack.value
+        const points = local.points[o.lskey.value]
+        let hypothesis = points.map(p => representerNearestPointsInTrack(p, track, 1.5, 30))
+        let lastWithoutEmpty = hypothesis
+        const hasEmpty = () => hypothesis.findIndex(h => h.length === 0) !== -1
+        const rememberIfNotEmpty = () => {
+          if (!hasEmpty()) {
+            lastWithoutEmpty = hypothesis
+          }
+        }
+        // remove any candidate that does not comply with the speed limits
+        hypothesis = hypothesis.map((h, i) => h.filter( ind => {
+        const p = points[i]
+        const elapsed = p.ts - startTime // ms
+        // we keep the points acquired before the start but we will need to handle them
+        if (elapsed < 0) {
+          return true
+        }
+        const v = cumulatedDistance[ind] / 1000 / (elapsed / 1000 / 3600)
+        // we ignore the lower speed limit at the beginning (30min), in case the race starts a little late
+        if (elapsed < 30*60) {
+          return v < local.maxSpeed
+        }
+        return v > local.minSpeed && v < local.maxSpeed
+      }))
+      rememberIfNotEmpty()
+
+      // for the before-the-start points, we fake their closest index as being the start point
+      hypothesis = hypothesis.map((h, i) => {
+        const p = points[i]
+        const elapsed = p.ts - startTime
+        if (elapsed < 0) {
+          return [0]
+        }
+        return h
+      })
+      rememberIfNotEmpty()
+
+      { // remove all incoherent points (that come before in the track than the previous one)
+        const minH = hypothesis.map(h => Math.min(...h))
+        hypothesis = hypothesis.map((h, i) => h.filter(ind => i===hypothesis.length-1 || ind <= minH[i+1]))
+      }
+      rememberIfNotEmpty()
+
+      // fill in the information for the rendering
+      let res = [] as TableRow[]
+      lastWithoutEmpty.forEach((h, i) => {
+        const p = points[i]
+        const elapsed = p.ts - startTime // ms
+        const row = { ...p, elapsed } as Partial<TableRow>
+        let ind = h[h.length-1]
+        row.dist = cumulatedDistance[ind] / 1000 // km
+        row.vel = row.dist / (elapsed / 1000 / 3600) // km/h
+        row.dplus = cumulatedDPlus[ind]
+        if (h.length > 1) {
+          ind = h[0]
+          row.distAlt = cumulatedDistance[ind] / 1000 // km
+          row.velAlt = row.distAlt / (elapsed / 1000 / 3600) // km/h
+          row.dplusAlt = cumulatedDPlus[ind]
+        }
+        res.push(row as TableRow)
+      })
+
+      { // insert fake (start) point
+        const p0 = track.points[0]
+        res = [
+          ...res.filter(p => p.elapsed <= 0).map(p => ({...p, start: true})),
+          { lat: p0.lat, lon: p0.lon, ts: startTime, elapsed: 0, dist: 0, dplus: 0, vel: 0, start: true },
+          ...res.filter(p => p.elapsed > 0).map(p => ({...p, start: false})),
+        ]
+      }
+
+      return res
+      }) as () => TableRow[]),
 
       contributeURL(lat: number, lon: number, ts: number) {
         let res = o.baseURLWithATrack.value

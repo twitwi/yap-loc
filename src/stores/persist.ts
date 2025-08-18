@@ -11,6 +11,7 @@ export const useLocalStore = defineStore(
       enableContrib: ref(false),
       enableView: ref(false),
       enableBackup: ref(false),
+      customPanelSize: ref(35), // vh
       //
       pendingContrib: ref([] as string[]),
       //
@@ -22,7 +23,10 @@ export const useLocalStore = defineStore(
       importSharedPoints: ref(true),
       shareNewPoints: ref(true),
       points: ref({} as Record<string, TimedPoint[]>),
-      dPlusPerKm: ref(110),
+      //
+      dPlusPerKm: ref(115),
+      maxSpeed: ref(16),
+      minSpeed: ref(3),
     }
     return o
   },
