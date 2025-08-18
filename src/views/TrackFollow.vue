@@ -51,8 +51,12 @@ const reportedMarkers = computed(() => {
     return []
   }
   const start = track.startTime
-  const end = Math.max(...local.points.map(p => p.ts))
-  return local.points.slice().sort((a, b) => a.ts - b.ts).map((p: TimedPoint) => {
+  const localPoints = local.points[track.lskey]
+  if (localPoints === undefined) {
+    return []
+  }
+  const end = Math.max(...localPoints.map(p => p.ts))
+  return localPoints.slice().sort((a, b) => a.ts - b.ts).map((p: TimedPoint) => {
     const nearests = representerNearestPointsInTrack({lat: p.lat, lon: p.lon}, trac, 1.5, 30)
     const info = nearests.map(i => [track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]])
     return {

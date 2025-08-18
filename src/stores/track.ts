@@ -77,7 +77,7 @@ export const useTrackStore = defineStore(
       },
 
       async loadSharedPoints() {
-        local.points.splice(0, local.points.length)
+        const res = []
         try {
           const sharedContent = await getSharedContent(o.lskey.value)
           const baseURL = 'https://twitwi.github.io/cap_nn/' //o.baseURL.value
@@ -86,11 +86,12 @@ export const useTrackStore = defineStore(
             const p = getURLParams(new URL(l))
             if (countKeysAmong(p, "lat", "lon", "at") == 3 && p.lskey === lskey) {
               const ts = guessTimestamp(p.at)
-              if (local.points.map((p) => p.ts).indexOf(ts) === -1) {
-                local.points.push(parseTimedPoint (`${ts}`, p.lat, p.lon))
+              if (res.map((p) => p.ts).indexOf(ts) === -1) {
+                res.push(parseTimedPoint (`${ts}`, p.lat, p.lon))
               }
             }
           }
+          local.points[data.lskey.value] = res
         } catch (e) {
           // e.g. cors limitations
           console.log("GET SHARED FAILED", e)

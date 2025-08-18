@@ -2,14 +2,20 @@
 import { useLocalStore } from '@/stores/persist'
 import { useTrackStore } from '@/stores/track'
 import { NButton, NCard, NForm, NFormItem, NInput, NSpace, NSwitch } from 'naive-ui'
+import { computed } from 'vue'
 
 const local = useLocalStore()
 const track = useTrackStore()
 
+const nPoints = computed(() => {
+  return local.points[track.lskey]?.length ?? 0
+})
+
 function promptClearLocalPoints() {
-  const l = local.points.length
+  const l = local.points[track.lskey]?.length
+  if (l === undefined) return
   if (confirm('Really remove the ' + l + ' local points?')) {
-    local.points.splice(0, l)
+    local.points[track.lskey].splice(0, l)
   }
 }
 </script>
@@ -50,7 +56,7 @@ function promptClearLocalPoints() {
         Share new points
         <NSwitch v-model:value="local.shareNewPoints" :round="false"></NSwitch>
       </NSpace>
-      <NButton :type="local.points.length == 0 ? 'default' : 'warning'" @click="promptClearLocalPoints()">Clear ({{ local.points.length }}) local points</NButton>
+      <NButton :type="nPoints == 0 ? 'default' : 'warning'" @click="promptClearLocalPoints()">Clear ({{ nPoints }}) local points</NButton>
     </NCard>
   </div>
 </template>

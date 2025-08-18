@@ -17,7 +17,7 @@ export const useLocalStore = defineStore(
       //
       importSharedPoints: ref(true),
       shareNewPoints: ref(true),
-      points: ref([] as TimedPoint[]),
+      points: ref({} as Record<string, TimedPoint[]>),
       dPlusPerKm: ref(110),
     }
     return o
