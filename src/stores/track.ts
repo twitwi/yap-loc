@@ -55,7 +55,7 @@ export const useTrackStore = defineStore(
           const ts = Math.round(pos.timestamp / 1000)
           const url = this.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
           data.logs.value.push({ class: 'pending', text: url })
-          await appendSharedContent(o.lskey.value, niceTimestamp(ts) + '\n' + url + '\n')
+          await appendSharedContent(o.lskey.value, niceTimestamp(ts * 1000) + '\n' + url + '\n')
           if (data.logs.value.slice(-1)[0].text === url) {
             data.logs.value.splice(-1, 1)
           }
@@ -80,9 +80,9 @@ export const useTrackStore = defineStore(
         const res = []
         try {
           const sharedContent = await getSharedContent(o.lskey.value)
-          const baseURL = 'https://twitwi.github.io/cap_nn/' //o.baseURL.value
+          const isBaseURLOk = (l: string) => l.startsWith(o.baseURL.value) || l.startsWith('https://twitwi.github.io/cap_nn/')
           const lskey = data.lskey.value
-          for (const l of sharedContent.split("\n").filter((l) => l.startsWith(baseURL))) {
+          for (const l of sharedContent.split("\n").filter(isBaseURLOk)) {
             const p = getURLParams(new URL(l))
             if (countKeysAmong(p, "lat", "lon", "at") == 3 && p.lskey === lskey) {
               const ts = guessTimestamp(p.at)
