@@ -53,6 +53,7 @@ const track = useTrackStore()
   > .router-view {
     flex: 1;
     overflow-y: scroll;
+    position: relative;
   }
 }
 .header {

@@ -54,8 +54,8 @@ async function copySMSURL() {
   <div class="main-contrib">
     <div style="display: flex; flex-direction: column;">
       <code style="font-size: 25px; text-align: center;"
-        @click="promptChangeLSKey()">{{ track.track || '(( not set ))' }}</code>
-      <NButton type="success" secondary @click="track.contributeDeviceLocation()">Contribute location <span
+        @click="promptChangeLSKey()">{{ track.lskey || '(( not set ))' }}</code>
+      <NButton type="success" secondary @click="track.contributeDeviceLocation()">Contribute location <span
           v-if="track.lskey"> ({{ track.lskey }})</span></NButton>
     </div>
     <ul class="debug-logs">

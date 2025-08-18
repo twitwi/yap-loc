@@ -1,11 +1,14 @@
+
+import gpxParser from "gpxparser"
 import { CryptoJS } from "./protectedtext/cryptojs"
+
 
 export function safeHTMLText(txt: string) {
   return new Option(txt).innerHTML
 }
 
-export function niceTimestamp(sec: number) {
-  const res = timestampToDatetimeInputString(sec * 1000)
+export function niceTimestamp(msec: number) {
+  const res = timestampToDatetimeInputString(msec)
   return res.replace(/(T|:\d\d\..*)/g, ' ')
 }
 
@@ -18,6 +21,91 @@ export function timestampToDatetimeInputString(timestamp: number) {
 function _getTimeZoneOffsetInMs() {
   return new Date().getTimezoneOffset() * -60 * 1000
 }
+
+export function elapsedTimeToString(elapsed: number) {
+  elapsed /= 1000
+  const elapsedH = Math.floor(elapsed / 3600)
+  const elapsedM = Math.floor(elapsed / 60) % 60
+  const elapsedS = Math.round(elapsed % 60)
+
+  return elapsedH + "h " + elapsedM + "m " + elapsedS + "s";
+}
+
+
+
+// =============== GPX ============
+
+export async function loadGpx(path: string) {
+  const req = await fetch(path)
+  if (!req.ok) {
+    throw new Error(`Cannot load gpx ${path}: ${req.status}`)
+  }
+  const gpx = new gpxParser()
+  gpx.parse(await req.text())
+  return gpx
+}
+
+
+// =============== URL ===============
+
+export type TimedPoint = {
+  ts: number
+  lat: number
+  lon: number
+}
+
+export function parseTimedPoint(ts: string, lat: string, lon: string) {
+  return {
+    ts: parseInt(ts), // in milliseconds
+    lat: parseFloat(lat),
+    lon: parseFloat(lon),
+  } as TimedPoint
+}
+
+
+export function guessTimestamp(s: string) {
+  // It can be an iso date, or an epoch time in ms or s
+  if (-1 !== s.indexOf("T")) {
+    return Date.parse(s)
+  }
+  const v = parseInt(s)
+  if (v < 30000000000) {
+    // before end of 1970, so we probably receive sec and not ms
+    return 1000 * v
+  } else {
+    return v
+  }
+}
+
+
+export function getURLParams(url?: URL) {
+  const urlSearchParams = new URLSearchParams((url ?? window.location).search)
+  const urlObject = Object.fromEntries(urlSearchParams.entries())
+  const shortcuts = {
+    A: 'lskey lat lon at start',
+  } as Record<string, string>
+
+  const res = {} as Record<'lskey' | 'lat' | 'lon' | 'at' | 'start', string>
+  // consume possible shortcuts
+  for (const s in shortcuts) {
+    if (s in urlObject) {
+      const keys = shortcuts[s].split(/ /g)
+      Object.assign(res, Object.fromEntries(urlObject[s].split(/,/g).map((v,i) => [keys[i], v])))
+      delete urlObject[s]
+    }
+  }
+  // save other params
+  Object.assign(res, urlObject)
+  return res;
+}
+
+const reduceSum = [(a: number, b: number) => a + b, 0] as [(a: number, b: number) => number, number]
+
+export function countKeysAmong(o: Record<string, unknown>, ...keys: string[]) {
+  return keys.map((k) => k in o ? 1 : 0).reduce(...reduceSum)
+}
+
+
 
 
 
@@ -79,4 +167,5 @@ export async function getSharedContent(lskey: string, pass = protectedTextPasswo
       action: 'save',
     }),
   })
+  return content
 }
