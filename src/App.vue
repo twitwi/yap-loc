@@ -25,7 +25,7 @@ onMounted(/*async*/ () => track.digestURL())
         <nav>
           <NButtonGroup class="header">
             <NButton v-bind="bindRouterLink('show-my-loc')" style="flex: 1"><NIcon><MyLocationRound /></NIcon></NButton>
-            <NButton v-if="track.track" v-bind="bindRouterLink('follow')"><NIcon><RouteTwotone /></NIcon></NButton>
+            <NButton v-if="track.track || local.enableView" v-bind="bindRouterLink('follow')"><NIcon><RouteTwotone /></NIcon></NButton>
             <NButton v-if="local.enableContrib" v-bind="bindRouterLink('contrib')"><NIcon><AddLocationAltTwotone /></NIcon></NButton>
             <NButton v-bind="bindRouterLink('config')" style="flex: 0"><NIcon><SettingsSuggestTwotone /></NIcon> </NButton>
             <NButton v-if="local.enableBackup" v-bind="bindRouterLink('backup')" style="flex: 0"><NIcon><DownloadTwotone /></NIcon> </NButton>

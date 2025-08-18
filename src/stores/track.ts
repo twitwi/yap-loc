@@ -219,9 +219,13 @@ export const useTrackStore = defineStore(
               }
             }
           }
-          for (const p of res) {
-            if (local.points[lskey].findIndex(p2 => p2.ts === p.ts) === -1) {
-              local.points[lskey].push(p)
+          if (local.points[lskey] === undefined) {
+            local.points[lskey] = res
+          } else {
+            for (const p of res) {
+              if (local.points[lskey].findIndex(p2 => p2.ts === p.ts) === -1) {
+                local.points[lskey].push(p)
+              }
             }
           }
         } catch (e) {
