@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { useTrackStore } from '@/stores/track'
+import { useTrackStore, type TableRow } from '@/stores/track'
 import { computed, nextTick, ref, watchEffect } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import { Map as LeafletMap, Polyline } from 'leaflet'
 import { LMap, LMarker, LPolyline, LTileLayer, LTooltip } from '@maxel01/vue-leaflet'
-import type { LatLng, LatLngTuple, LeafletMouseEvent, Marker } from 'leaflet'
+import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn, Marker } from 'leaflet'
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
 import { representerNearestPointsInTrack } from '@/utils-analyze'
@@ -27,6 +27,14 @@ function formatDistDPlus(dist: number, dPlus: number) {
   return `${dist.toFixed(1)}km, ${dPlus.toFixed(0)}D+ (${eff.toFixed(0)}${ff.value})`
 }
 
+function formatTimeRacetimeDistDPlus(start: number, ts: number, distDPlus: [number, number][], estimate = false) {
+  return (
+    estimate ?
+    `<b>ETA ${niceTimestamp(ts)}</b><br/> └─ Écoulé : ${elapsedTimeToString(ts - start)}<br/>` :
+    `${niceTimestamp(ts)}<br/> └─ Écoulé : <b>${elapsedTimeToString(ts - start)}</b><br/>`
+  ) + `${distDPlus.map(([dist, dplus]) => ' └─ ' + formatDistDPlus(dist, dplus)).join('<br/>')}`
+}
+
 type MarkerDescription = {
   key: string
   latlng: LatLng
@@ -36,21 +44,6 @@ type MarkerDescription = {
   propEnd?: number
 }
 const estimateMarkers = ref([] as MarkerDescription[])
-
-function maybeAddEndAsEstimate() {
-  if (estimateMarkers.value.length === 0 && track.gpxContent) {
-    const t = track.gpxContent.tracks[0]
-    const p = t.points.slice(-1)[0]
-    const dist = track.cumulatedDistance.slice(-1)[0] / 1000
-    const dplus = track.cumulatedDPlus.slice(-1)[0]
-    estimateMarkers.value.push({
-      key: `end-${Math.random()}`,
-      latlng: { lat: p.lat, lng: p.lon },
-      info: `END: ${formatDistDPlus(dist, dplus)}<br/>ETA:`
-    } as MarkerDescription)
-  }
-}
-watchEffect(maybeAddEndAsEstimate)
 
 const reportedMarkers = computed(() => {
   const trac = track.gpxContent?.tracks[0] as Track
@@ -65,15 +58,13 @@ const reportedMarkers = computed(() => {
   const end = Math.max(...localPoints.map(p => p.ts))
   return localPoints.slice().sort((a, b) => a.ts - b.ts).map((p: TimedPoint) => {
     const nearests = representerNearestPointsInTrack({lat: p.lat, lon: p.lon}, trac, 1.5, 30)
-    const info = nearests.map(i => [track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]])
+    const info = nearests.map(i => [track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]] as [number, number])
     return {
       key: `rep-${Math.random()}`,
       latlng: { lat: p.lat, lng: p.lon },
       ts: p.ts,
       selected: p.ts === selectedTs.value,
-      info: `${niceTimestamp(p.ts)}<br/>
-            Temps écoulé : <b>${elapsedTimeToString(p.ts - track.startTime)}</b><br/>
-            ${info.map(([dist, dplus]) => '| ' + formatDistDPlus(dist, dplus)).join('<br/>')}`,
+      info: formatTimeRacetimeDistDPlus(track.startTime, p.ts, info),
       propEnd: (p.ts - start) / (end - start),
     } as MarkerDescription
   })
@@ -94,22 +85,89 @@ function fitGpx() {
 
 watchEffect(fitGpx)
 
-watchEffect(() => {
-  if (polyline.value) {
-    polyline.value.addEventListener('click', (ev: LeafletMouseEvent) => {
+let lastEventListener = undefined as LeafletMouseEventHandlerFn | undefined
+watchEffect(() => { // update estimateMarkers
+  if (polyline.value && track.firstGpxTrack) {
+    const trac = track.firstGpxTrack
+    const cumulatedDistance = track.cumulatedDistance
+    const cumulatedDPlus = track.cumulatedDPlus
+    const rows = track.tableRows
+    const dppkm = local.dPlusPerKm
+    const startTime = track.startTime
+
+    if (lastEventListener) {
+      polyline.value.removeEventListener('click', lastEventListener)
+    }
+    lastEventListener = (ev: LeafletMouseEvent) => {
+      const nearests = representerNearestPointsInTrack({lat: ev.latlng.lat, lon: ev.latlng.lng}, trac, 1.5, 30)
+      const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
+      const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
+      let info = 'No information yet'
+
+      if (rows.length === 0 || rows[0].start) {
+      } else {
+        const times = strains.map(([i, s]) => {
+          let iafter = rows.length - 1
+          for (; iafter >= 0 ; iafter--) {
+            if (s < getStrain(rows[iafter])) {
+              break
+            }
+          }
+          if (iafter === -1) {
+            const r = rows[0]
+            const currentStrainPerTime = getStrain(r) / r.elapsed
+            return [i, startTime + s / currentStrainPerTime]
+          } else {
+            const r1 = rows[iafter+1]
+            const r2 = rows[iafter]
+            const s1 = getStrain(r1)
+            const s2 = getStrain(r2)
+            const t1 = r1.elapsed || 0
+            const t2 = r2.elapsed || 0
+            return [i, startTime + t1 + (s-s1) / (s2-s1) * (t2-t1)]
+          }
+        })
+        info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
+      }
+
       estimateMarkers.value.push({
         key: `key${Math.random()}`,
         latlng: ev.latlng,
-        info: 'test',
+        info,
       })
-    })
+    }
+    polyline.value.addEventListener('click', lastEventListener)
   }
 })
+
+function maybeAddEndAsEstimate() {
+  if (estimateMarkers.value.length === 0 && track.firstGpxTrack && !track.tableRows[0].start) {
+    const t = track.firstGpxTrack
+    const p = t.points.slice(-1)[0]
+    const dist = track.cumulatedDistance.slice(-1)[0] / 1000
+    const dplus = track.cumulatedDPlus.slice(-1)[0]
+    const strain = dist + dplus / local.dPlusPerKm
+    const r = track.tableRows[0]
+    const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / local.dPlusPerKm
+    const currentStrainPerTime = getStrain(r) / r.elapsed
+    const i = t.points.length - 1
+    const ts = track.startTime + strain / currentStrainPerTime
+    const info = formatTimeRacetimeDistDPlus(track.startTime, ts, [[track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]]], true)
+
+    estimateMarkers.value.push({
+      key: `end-${Math.random()}`,
+      latlng: { lat: p.lat, lng: p.lon },
+      info: `(END) ${info}`,
+    } as MarkerDescription)
+  }
+}
+watchEffect(maybeAddEndAsEstimate)
+
+
 
 function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[], redo = true) {
   const el = e.getElement()
   if (el) {
-    console.log(m.ts, selectedTs.value)
     if (m.selected) {
       el.classList.add('selected')
     }

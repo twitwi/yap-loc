@@ -12,14 +12,14 @@ export type DebugLog = {
 }
 
 export type TableRow = {
-  ts: number
+  ts: number // ms
   lat: number
   lon: number
   start?: boolean
-  elapsed: number
-  dist: number
-  dplus: number
-  vel: number
+  elapsed: number // ms
+  dist: number // km
+  dplus: number // m
+  vel: number // km/h
   // for alternative possibility
   distAlt?: number
   dplusAlt?: number
@@ -137,7 +137,7 @@ export const useTrackStore = defineStore(
           ...res.filter(p => p.elapsed > 0).map(p => ({...p, start: false})),
         ]
       }
-
+      res.sort((a, b) => b.ts - a.ts)
       return res
       }) as () => TableRow[]),
 
