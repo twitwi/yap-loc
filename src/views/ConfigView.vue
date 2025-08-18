@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useLocalStore } from '@/stores/persist'
 import { useTrackStore } from '@/stores/track'
-import { NButton, NCard, NForm, NFormItem, NInput, NSpace, NSwitch } from 'naive-ui'
+import { NButton, NCard, NForm, NFormItem, NInput, NInputNumber, NSpace, NSwitch } from 'naive-ui'
 import { computed } from 'vue'
 
 const local = useLocalStore()
@@ -64,6 +64,20 @@ function promptClearLocalPoints() {
         <NSwitch v-model:value="local.shareNewPoints" :round="false"></NSwitch>
       </NSpace>
       <NButton :type="nPoints == 0 ? 'default' : 'warning'" @click="promptClearLocalPoints()">Clear ({{ nPoints }}) local points</NButton>
+    </NCard>
+    <NCard>
+      <NSpace>
+        Minimum plausible (average) speed
+        <NInputNumber v-model:value="local.minSpeed" :format="v => `${v} km/h`" :parse="v => parseFloat(v.split(' ')[0])"></NInputNumber>
+      </NSpace>
+      <NSpace>
+        Maximum plausible (average) speed
+        <NInputNumber v-model:value="local.maxSpeed" :format="v => `${v} km/h`" :parse="v => parseFloat(v.split(' ')[0])"></NInputNumber>
+      </NSpace>
+      <NSpace>
+        Number of D+ to equal 1km
+        <NInputNumber v-model:value="local.dPlusPerKm" :format="v => `${v} mD+/km`" :parse="v => parseFloat(v.split(' ')[0])" :step="10"></NInputNumber>
+      </NSpace>
     </NCard>
   </div>
 </template>

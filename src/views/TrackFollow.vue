@@ -18,7 +18,7 @@ const local = useLocalStore()
 const map = ref(undefined as LeafletMap | undefined)
 const polyline = ref(undefined as Polyline | undefined)
 const ff = ref("🔥")
-const bottom = ref('table' as 'none' | 'table' | 'profile')
+const bottom = ref('none' as 'none' | 'table' | 'profile')
 const selectedTs = ref(0)
 const currentTs = ref(0)
 
