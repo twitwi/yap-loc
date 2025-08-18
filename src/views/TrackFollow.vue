@@ -199,7 +199,6 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
 <template>
   <div class="main-follow">
     <component :is="'style'">:root { --custom-panel-size: {{ local.customPanelSize }}vh; }</component>
-    <pre>{{ track.gpxPath }}</pre>
     <LMap @ready="e => map = e">
       <LTileLayer :url="local.tileFormat" />
       <LPolyline v-if="track.gpxContent" :lat-lngs="gpxLatLon" :weight="20" :opacity="0.25" color="cyan" @ready="e => polyline = e" />
@@ -263,7 +262,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
 <style>
 .main-follow {
   width: 100%;
-  height: 100%;
+  --panel-size: 0;
+  --bar-size: calc(3em + 3px);
+  height: calc(100% - var(--bar-size));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -290,10 +291,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   z-index: 1000;
   opacity: 0.9;
   left: 0;
-  bottom: 0;
+  bottom: 2px;
   width: 100%;
-  --panel-size: 0;
-  height: calc(var(--panel-size) + 3em);
+  height: calc(var(--panel-size) + var(--bar-size));
   &:not(.bottom-none) {
     --panel-size: var(--custom-panel-size);
   }
@@ -304,7 +304,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   .bar {
     width: 100%;
     display: flex;
-    height: 3em;
+    height: var(--bar-size);
 
     & > * {
       flex: 100;

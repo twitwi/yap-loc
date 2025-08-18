@@ -53,6 +53,10 @@ function promptClearLocalPoints() {
         Enable Backup
         <NSwitch v-model:value="local.enableBackup" :round="false"></NSwitch>
       </NSpace>
+      <NSpace>
+        Enable Fullscreen
+        <NSwitch v-model:value="local.enableFullscreen" :round="false"></NSwitch>
+      </NSpace>
     </NCard>
     <NCard>
       <NSpace>
