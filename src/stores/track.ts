@@ -219,7 +219,11 @@ export const useTrackStore = defineStore(
               }
             }
           }
-          local.points[data.lskey.value] = res
+          for (const p of res) {
+            if (local.points[lskey].findIndex(p2 => p2.ts === p.ts) === -1) {
+              local.points[lskey].push(p)
+            }
+          }
         } catch (e) {
           // e.g. cors limitations, no network
           console.log("GET SHARED FAILED", e)
