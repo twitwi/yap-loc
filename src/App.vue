@@ -36,7 +36,7 @@ onMounted(/*async*/ () => track.digestURL())
             <NButton v-if="local.enableContrib" v-bind="bindRouterLink('contrib')"><NIcon><AddLocationAltTwotone /></NIcon></NButton>
             <NButton v-bind="bindRouterLink('config')" style="flex: 0"><NIcon><SettingsSuggestTwotone /></NIcon> </NButton>
             <NButton v-if="local.enableBackup" v-bind="bindRouterLink('backup')" style="flex: 0"><NIcon><DownloadTwotone /></NIcon> </NButton>
-            <NButton style="flex: 0" @click="toggleFS()"><NIcon><FullscreenExitSharp v-if="isFullscreen" /><FullscreenSharp v-else /></NIcon> </NButton>
+            <NButton v-if="local.enableFullscreen" style="flex: 0" @click="toggleFS()"><NIcon><FullscreenExitSharp v-if="isFullscreen" /><FullscreenSharp v-else /></NIcon> </NButton>
           </NButtonGroup>
         </nav>
       </header>
