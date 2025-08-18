@@ -274,9 +274,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
     &:not(.prop1):not(.estimate) {
       opacity: .75;
       filter: grayscale(calc(1 - 1 * var(--prop-end)));
-      &.selected {
-        outline: 5px solid darkred;
-      }
+    }
+    &.selected {
+      outline: 5px solid darkred;
     }
     &.prop1 {
       filter: brightness(150%);

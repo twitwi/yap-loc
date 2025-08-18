@@ -1,4 +1,4 @@
-import { appendSharedContent, countKeysAmong, getProtectedTextURL, getSharedContent, getURLParams, guessTimestamp, loadGpx, lskeyToDocid, niceTimestamp, parseTimedPoint, safeHTMLText } from "@/utils"
+import { appendSharedContent, countKeysAmong, getProtectedTextURL, getSharedContent, getURLParams, guessTimestamp, loadGpx, lskeyToDocid, niceTimestamp, parseTimedPoint, removeURLParams, safeHTMLText } from "@/utils"
 import { defineStore } from "pinia"
 import { computed, markRaw, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
@@ -201,10 +201,11 @@ export const useTrackStore = defineStore(
         })
       },
 
-      async loadSharedPoints() {
+
+      async loadSharedPoints(content?: string) {
         const res = []
         try {
-          const sharedContent = await getSharedContent(o.lskey.value)
+          const sharedContent = content ? content : await getSharedContent(o.lskey.value)
           const isBaseURLOk = (l: string) => l.startsWith(o.baseURL.value) || l.startsWith('https://twitwi.github.io/cap_nn/')
           const lskey = data.lskey.value
           for (const l of sharedContent.split("\n").filter(isBaseURLOk)) {
@@ -236,6 +237,7 @@ export const useTrackStore = defineStore(
 
       async digestURL() {
         // digest url, for sharing etc
+        let routeTo = ''
 
         const p = getURLParams()
         if ('lskey' in p) {
@@ -247,17 +249,23 @@ export const useTrackStore = defineStore(
         if (countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints) {
           const ts = guessTimestamp(p.at)
           try {
-            await appendSharedContent(
+            const content = await appendSharedContent(
               data.lskey.value,
               niceTimestamp(ts) + "\n" + window.location.toString().replace(/#.*/, '') + "\n"
             )
+            await this.loadSharedPoints(content)
+            removeURLParams()
+            routeTo = 'follow'
           } catch (e) {
             // e.g. cors limitations
             console.log("APPEND SHARED FAILED", e)
           }
         }
-        if (local.lastRoute) {
+        if (routeTo === '' && local.lastRoute) {
           router.replace({ name: local.lastRoute })
+        }
+        if (routeTo !== '') {
+          router.replace({ name: routeTo })
         }
       },
 

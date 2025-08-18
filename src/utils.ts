@@ -101,6 +101,12 @@ export function getURLParams(url?: URL) {
   return res;
 }
 
+export function removeURLParams() {
+  const url = new URL(window.location.href)
+  url.search = ''
+  window.history.replaceState({}, '', url.href)
+}
+
 const reduceSum = [(a: number, b: number) => a + b, 0] as [(a: number, b: number) => number, number]
 
 export function countKeysAmong(o: Record<string, unknown>, ...keys: string[]) {
