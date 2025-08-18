@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useLocalStore } from '@/stores/persist'
+import { TILE_FORMAT, useLocalStore } from '@/stores/persist'
 import { useTrackStore } from '@/stores/track'
 import { NButton, NCard, NForm, NFormItem, NInput, NInputNumber, NSpace, NSwitch } from 'naive-ui'
 import { computed } from 'vue'
@@ -40,6 +40,10 @@ function promptClearLocalPoints() {
       <NSpace>
         Enable View
         <NSwitch v-model:value="local.enableView" :round="false"></NSwitch>
+      </NSpace>
+      <NSpace>
+        Tile server (<span :title="'default is ' + TILE_FORMAT + ' (click to reset)'" @click="local.tileFormat = TILE_FORMAT">default</span>)
+        <NInput v-model:value="local.tileFormat" :autosize="true" ></NInput>
       </NSpace>
       <NSpace>
         Enable Contrib

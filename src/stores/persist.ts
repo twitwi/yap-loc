@@ -2,6 +2,8 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { TimedPoint } from '@/utils'
 
+export const TILE_FORMAT = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+
 // More or less raw. Domain logic is in the track store.
 export const useLocalStore = defineStore(
   'local',
@@ -18,7 +20,7 @@ export const useLocalStore = defineStore(
       lastLSKey: ref(''),
       lastStartTime: ref(0),
       lastRoute: ref(''),
-      tileFormat: ref('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'),
+      tileFormat: ref(TILE_FORMAT),
       //
       importSharedPoints: ref(true),
       importSharedStart: ref(true),
