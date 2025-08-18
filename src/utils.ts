@@ -1,6 +1,7 @@
 
 import gpxParser from "gpxparser"
 import { CryptoJS } from "./protectedtext/cryptojs"
+import { useLocalStore } from "./stores/persist"
 
 
 export function safeHTMLText(txt: string) {
@@ -125,13 +126,18 @@ export function lskeyToDocid(lskey: string) {
   // protectedtext replaces @, so better not use it
   return 'cap_nn___gpx/' + lskey.replace('@', '__') + '.gpx'
 }
-export function getProtectedTextURL(docid: string, get = true, cors = true, pass = undefined as undefined | true) {
+export function getProtectedTextURL(docid: string, get = true, cors = true as boolean | string, pass = undefined as undefined | true) {
+  if (cors === true) {
+    cors = useLocalStore().cors
+  } else if (cors === false) {
+    cors = ''
+  }
   return (
-    (cors ? 'https://cors.heeere.com/' : '') +
-    'https://www.protectedtext.com/' +
+    cors +
+    ('https://www.protectedtext.com/' +
     docid +
     (get ? '?action=getJSON' : '') +
-    (pass === true ? '?' + protectedTextPassword : pass ? '?' + pass : '')
+    (pass === true ? '?' + protectedTextPassword : pass ? '?' + pass : ''))
   )
 }
 export async function appendSharedContent(lskey: string, v: string, pass = protectedTextPassword) {
@@ -140,11 +146,13 @@ export async function appendSharedContent(lskey: string, v: string, pass = prote
 export async function getSharedContent(lskey: string, pass = protectedTextPassword, alsoAppendValue?: string) {
   const docid = lskeyToDocid(lskey)
   const end = CryptoJS.SHA512('/' + docid).toString()
-  const req = await fetch(getProtectedTextURL(docid), {
-    headers: {
+  const url = getProtectedTextURL(docid)
+  const req = await fetch(url, {
+    credentials: 'omit',
+    headers: url.includes('heeere') ? {
       Pragma: 'no-cache',
       'Cache-Control': 'no-cache',
-    },
+    } : {},
   })
   const o = await req.json()
   const raw = CryptoJS.AES.decrypt(o.eContent, pass).toString(CryptoJS.enc.Utf8)

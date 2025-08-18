@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TILE_FORMAT, useLocalStore } from '@/stores/persist'
+import { CORS, TILE_FORMAT, useLocalStore } from '@/stores/persist'
 import { useTrackStore } from '@/stores/track'
 import { NButton, NCard, NForm, NFormItem, NInput, NInputNumber, NSpace, NSwitch } from 'naive-ui'
 import { computed } from 'vue'
@@ -41,8 +41,8 @@ function promptClearLocalPoints() {
         Enable View
         <NSwitch v-model:value="local.enableView" :round="false"></NSwitch>
       </NSpace>
-      <NSpace>
-        Tile server (<span :title="'default is ' + TILE_FORMAT + ' (click to reset)'" @click="local.tileFormat = TILE_FORMAT">default</span>)
+      <NSpace :align="'baseline'">
+        Tile server <span :title="'default is ' + TILE_FORMAT + ' (click to reset)'" @click="local.tileFormat = TILE_FORMAT">(+default)</span>
         <NInput v-model:value="local.tileFormat" :autosize="true" ></NInput>
       </NSpace>
       <NSpace>
@@ -66,6 +66,11 @@ function promptClearLocalPoints() {
       <NSpace>
         Share new points
         <NSwitch v-model:value="local.shareNewPoints" :round="false"></NSwitch>
+      </NSpace>
+      <NSpace :align="'baseline'">
+        CORS server for protectedtext <span :title="'default is ' + CORS + ' (click to reset)'" @click="local.cors = CORS">(+default)</span>
+         <span :title="'NOT RECOMMENDED (slow) alternative only for reading, NOT RECOMMENDED (click to set)'" @click="local.cors = 'https://api.allorigins.win/raw?url='">(+alt)</span>
+        <NInput v-model:value="local.cors" :autosize="true" ></NInput>
       </NSpace>
       <NButton :type="nPoints == 0 ? 'default' : 'warning'" @click="promptClearLocalPoints()">Clear ({{ nPoints }}) local points</NButton>
     </NCard>

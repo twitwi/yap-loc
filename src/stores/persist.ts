@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { TimedPoint } from '@/utils'
 
 export const TILE_FORMAT = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
+export const CORS = 'https://cors.heeere.com/'
 
 // More or less raw. Domain logic is in the track store.
 export const useLocalStore = defineStore(
@@ -25,6 +26,7 @@ export const useLocalStore = defineStore(
       importSharedPoints: ref(true),
       importSharedStart: ref(true),
       shareNewPoints: ref(true),
+      cors: ref(CORS),
       points: ref({} as Record<string, TimedPoint[]>),
       //
       dPlusPerKm: ref(115),
