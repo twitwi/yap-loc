@@ -150,10 +150,14 @@ export const useTrackStore = defineStore(
       async contributeDeviceLocation() {
         try {
           const pos = await o.getDeviceLocation()
-          const ts = Math.round(pos.timestamp / 1000)
-          const url = o.contributeURL(pos.coords.latitude, pos.coords.longitude, ts)
+          const tsec = Math.round(pos.timestamp / 1000)
+          const ts = tsec * 1000
+          const { latitude, longitude } = pos.coords
+          const fix = (v: number) => parseFloat(v.toFixed(4))
+          local.points[o.lskey.value].push({ ts, lat: fix(latitude), lon: fix(longitude) })
+          const url = o.contributeURL(latitude, longitude, tsec)
           data.logs.value.push({ class: 'pending', text: url })
-          const chunk = niceTimestamp(ts * 1000) + '\n' + url + '\n'
+          const chunk = niceTimestamp(tsec * 1000) + '\n' + url + '\n'
           try {
             await appendSharedContent(o.lskey.value, chunk)
             if (data.logs.value.slice(-1)[0].text === url) {
@@ -200,7 +204,6 @@ export const useTrackStore = defineStore(
           })
         })
       },
-
 
       async loadSharedPoints(content?: string) {
         const lskey = data.lskey.value
