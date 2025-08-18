@@ -21,6 +21,7 @@ export const useLocalStore = defineStore(
       lastLSKey: ref(''),
       lastStartTime: ref(0),
       lastRoute: ref(''),
+      usedLSKeys: ref([] as string[]),
       tileFormat: ref(TILE_FORMAT),
       //
       importSharedPoints: ref(true),

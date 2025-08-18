@@ -255,8 +255,12 @@ export const useTrackStore = defineStore(
 
     }
     watchEffect(() => {
-      if (o.lskey.value) {
-        local.lastLSKey = o.lskey.value
+      const k = o.lskey.value
+      if (k) {
+        local.lastLSKey = k
+        if (!local.usedLSKeys.includes(k)) {
+          local.usedLSKeys.push(k)
+        }
       }
     })
     watchEffect(() => {

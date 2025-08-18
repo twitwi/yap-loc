@@ -7,5 +7,6 @@ pnpm  build --base /loc/
 
 TODO
 
+- when contribute a point, actually add it locally too
 - new: use first point instead of start
 
