@@ -203,11 +203,11 @@ export const useTrackStore = defineStore(
 
 
       async loadSharedPoints(content?: string) {
+        const lskey = data.lskey.value
         const res = []
         try {
           const sharedContent = content ? content : await getSharedContent(o.lskey.value)
           const isBaseURLOk = (l: string) => l.startsWith(o.baseURL.value) || l.startsWith('https://twitwi.github.io/cap_nn/')
-          const lskey = data.lskey.value
           for (const l of sharedContent.split("\n").filter(isBaseURLOk)) {
             const p = getURLParams(new URL(l))
             if (countKeysAmong(p, "lat", "lon", "at") == 3 && p.lskey === lskey) {
@@ -220,13 +220,9 @@ export const useTrackStore = defineStore(
               }
             }
           }
-          if (local.points[lskey] === undefined) {
-            local.points[lskey] = res
-          } else {
-            for (const p of res) {
-              if (local.points[lskey].findIndex(p2 => p2.ts === p.ts) === -1) {
-                local.points[lskey].push(p)
-              }
+          for (const p of res) {
+            if (local.points[lskey].findIndex(p2 => p2.ts === p.ts) === -1) {
+              local.points[lskey].push(p)
             }
           }
         } catch (e) {
@@ -236,7 +232,7 @@ export const useTrackStore = defineStore(
       },
 
       async digestURL() {
-        // digest url, for sharing etc
+        // digest url, for sharing etc + kind of init
         let routeTo = ''
 
         const p = getURLParams()
@@ -272,11 +268,12 @@ export const useTrackStore = defineStore(
     }
     watchEffect(() => {
       const k = o.lskey.value
-      if (k) {
-        local.lastLSKey = k
-        if (!local.usedLSKeys.includes(k)) {
-          local.usedLSKeys.push(k)
-        }
+      local.lastLSKey = k
+      if (k && !local.usedLSKeys.includes(k)) {
+        local.usedLSKeys.push(k)
+      }
+      if (local.points[k] === undefined) {
+        local.points[k] = []
       }
     })
     watchEffect(() => {
