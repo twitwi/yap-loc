@@ -87,7 +87,7 @@ function promptClearPendingContrib() {
       </ul>
     </details>
     <hr />
-    <details open>
+    <details>
       <summary>SMS Config (android app)</summary>
       <NSpace>
         <NSwitch v-model:value="sms.withStart" :round="false" title="include start" style="margin-top:1em"></NSwitch>

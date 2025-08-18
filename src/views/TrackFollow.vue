@@ -253,7 +253,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
       <div v-if="bottom === 'profile'" class="panel">
         TODO
       </div>
-      <NButtonGroup class="bar" size="small">
+      <NButtonGroup class="bar" size="medium">
         <NButton @click="bottom = bottom === 'table' ? 'none' : 'table'"><NIcon><TableRowsTwotone /></NIcon></NButton>
         <NButton @click="bottom = 'none'" style="flex: 20"><NIcon><KeyboardDoubleArrowDownSharp /></NIcon></NButton>
         <NButton @click="bottom = bottom === 'profile' ? 'none' : 'profile'"><NIcon><AreaChartTwotone /></NIcon></NButton>
@@ -295,7 +295,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   bottom: 0;
   width: 100%;
   --panel-size: 0;
-  height: calc(var(--panel-size) + 2em);
+  height: calc(var(--panel-size) + 3em);
   &:not(.bottom-none) {
     --panel-size: var(--custom-panel-size);
   }
@@ -306,6 +306,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   .bar {
     width: 100%;
     display: flex;
+    height: 3em;
 
     & > * {
       flex: 100;
@@ -313,6 +314,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   }
 }
 .bottom-table {
+  table {
+    margin: 1em;
+  }
   table, th, td {
     border: 1px solid black;
     border-collapse: collapse;
