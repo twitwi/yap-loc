@@ -159,11 +159,14 @@ export const useTrackStore = defineStore(
           data.logs.value.push({ class: 'pending', text: url })
           const chunk = niceTimestamp(tsec * 1000) + '\n' + url + '\n'
           try {
-            await appendSharedContent(o.lskey.value, chunk)
+            const content = await appendSharedContent(o.lskey.value, chunk)
             if (data.logs.value.slice(-1)[0].text === url) {
               data.logs.value.splice(-1, 1)
             }
             data.logs.value.push({ class: 'done', text: url })
+            if (local.importSharedPoints) {
+              await this.loadSharedPoints(content)
+            }
           } catch (e) {
             local.pendingContrib.push(chunk)
             const ee = e as Record<string, string>
@@ -182,13 +185,16 @@ export const useTrackStore = defineStore(
         }
         const chunks = local.pendingContrib.join('\n')
         try {
-          await appendSharedContent(o.lskey.value, chunks)
+          const content = await appendSharedContent(o.lskey.value, chunks)
           if (l !== local.pendingContrib.length) {
             data.logs.value.push({ class: 'error', text: `${l} pending contributions sent but size changed so we might loose last contrib?` })
           } else {
             data.logs.value.push({ class: 'done', text: `${l} pending contributions sent.` })
           }
           local.pendingContrib.splice(0, l)
+          if (local.importSharedPoints) {
+            await this.loadSharedPoints(content)
+          }
         } catch (e) {
           const ee = e as Record<string, string>
           data.logs.value.push({ class: 'error', text: safeHTMLText(ee.message) })
@@ -252,7 +258,9 @@ export const useTrackStore = defineStore(
               data.lskey.value,
               niceTimestamp(ts) + "\n" + window.location.toString().replace(/#.*/, '') + "\n"
             )
-            await this.loadSharedPoints(content)
+            if (local.importSharedPoints) {
+              await this.loadSharedPoints(content)
+            }
             removeURLParams()
             routeTo = 'follow'
           } catch (e) {
