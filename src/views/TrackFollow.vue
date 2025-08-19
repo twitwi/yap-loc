@@ -35,6 +35,16 @@ function formatTimeRacetimeDistDPlus(start: number, ts: number, distDPlus: [numb
   ) + `${distDPlus.map(([dist, dplus]) => ' └─ ' + formatDistDPlus(dist, dplus)).join('<br/>')}`
 }
 
+function formatProgressTableCell(elapsed: number, dist: number, dplus: number, vel: number) {
+  const f = ff.value
+  const strain = dist + dplus / local.dPlusPerKm
+  const strainPerHour = (strain / (elapsed / 1000 / 3600)).toFixed(1)
+  dist = Math.round(dist)
+  dplus = Math.round(dplus)
+  return `${dist}km, ${dplus}D+, ${strain.toFixed(0)}${f}<br/>(${vel.toFixed(1)}km/h, ${strainPerHour}${f}/h)`
+
+}
+
 type MarkerDescription = {
   key: string
   latlng: LatLng
@@ -212,37 +222,26 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
     </LMap>
     <div :class="{ bottom: true, [`bottom-${bottom}`]: true}">
       <div v-if="bottom === 'table'" class="panel">
+        <input type="checkbox" id="widetablecb" style="display: none;" />
         <table>
           <thead>
             <tr>
-              <th>Heure</th>
+              <th><label for="widetablecb">Heure</label></th>
               <th v-if="tableHasPessimisticColumn">Au pire</th>
               <th :colspan="tableHasPessimisticColumn ? 1 : 2">Au mieux</th>
-              <th>Lat,Lon</th>
+              <th class="latlon">Lat,Lon</th>
             </tr>
             </thead>
           <tbody>
             <tr v-for="r in track.tableRows" :key="r.ts" :class="{ start: r.start, selected: selectedTs === r.ts, current: currentTs === r.ts }" @click="selectedTs = r.ts">
               <td>
-                <i>(start)</i>
-                {{ niceTimestamp(r.ts) }}
+                <i>(start)</i> 
+                <span v-html="niceTimestamp(r.ts).replace(/ /, '<br/><i>(start)</i> ')"></span>
               </td>
-              <td v-if="r.distAlt">
-                {{ Math.round(r.distAlt) }}km, {{ Math.round(r.dplusAlt!) }}D+ ({{
-                  r.velAlt!.toFixed(1)
-                }}km/h) ({{
-                  (((r.distAlt + r.dplusAlt! / local.dPlusPerKm) / r.elapsed) * 1000 * 3600).toFixed(1)
-                }}{{ff}}/h)
-              </td>
-              <td v-if="r.dist" :colspan="r.distAlt ? 1 : 2">
-                {{ Math.round(r.dist) }}km, {{ Math.round(r.dplus) }}D+ ({{
-                  r.vel.toFixed(1)
-                }}km/h) ({{
-                  (((r.dist + r.dplus / local.dPlusPerKm) / r.elapsed) * 1000 * 3600).toFixed(1)
-                }}{{ff}}/h)
-              </td>
+              <td v-if="r.distAlt" v-html="formatProgressTableCell(r.elapsed, r.distAlt, r.dplusAlt!, r.velAlt!)"></td>
+              <td v-if="r.dist" :colspan="r.distAlt ? 1 : 2" v-html="formatProgressTableCell(r.elapsed, r.dist, r.dplus, r.vel)"></td>
               <td v-else :colspan="2"></td>
-              <td class="latlon">{{ r.lat }}, {{  r.lon }}</td>
+              <td class="latlon">{{ r.lat }},<br/>{{  r.lon }}</td>
             </tr>
           </tbody>
         </table>
@@ -312,6 +311,9 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
   }
 }
 .bottom-table {
+  :checked ~ table br {
+    display: none;
+  }
   table {
     margin: 1em;
   }
@@ -324,7 +326,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
     padding-right: 1em;
     text-align: center;
   }
-  td.latlon {
+  :is(th,td).latlon {
     font-size: 0.6em;
   }
   table {
