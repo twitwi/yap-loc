@@ -15,6 +15,7 @@ export const useLocalStore = defineStore(
       enableView: ref(false),
       enableBackup: ref(false),
       enableFullscreen: ref(false),
+      hugeContribButton: ref(false),
       customPanelSize: ref(35), // vh
       //
       pendingContrib: ref([] as string[]),

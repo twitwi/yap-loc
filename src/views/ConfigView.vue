@@ -48,6 +48,8 @@ function promptClearLocalPoints() {
       <NSpace>
         Enable Contrib
         <NSwitch v-model:value="local.enableContrib" :round="false"></NSwitch>
+        and huge
+        <NSwitch v-model:value="local.hugeContribButton" :round="false"></NSwitch>
       </NSpace>
       <NSpace>
         Enable Backup
