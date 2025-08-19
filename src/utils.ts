@@ -1,5 +1,5 @@
 
-import gpxParser from "gpxparser"
+import gpxParser from "./gpxparser.js"
 import { CryptoJS } from "./protectedtext/cryptojs"
 import { useLocalStore } from "./stores/persist"
 

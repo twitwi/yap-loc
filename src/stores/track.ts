@@ -2,9 +2,9 @@ import { appendSharedContent, countKeysAmong, getProtectedTextURL, getSharedCont
 import { defineStore } from "pinia"
 import { computed, markRaw, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
-import type GpxParser from "gpxparser"
 import { computeCumulatedDPlus, representerNearestPointsInTrack } from "@/utils-analyze"
 import router from "@/router"
+import type { GpxParser } from "@/gpxparser"
 
 export type DebugLog = {
   text: string

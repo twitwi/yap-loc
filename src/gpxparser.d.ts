@@ -1,3 +1,4 @@
+
 export type MetaData = {
   name: string
   desc: string
@@ -87,8 +88,11 @@ declare class GpxParser {
   waypoints: Waypoint[]
   tracks: Track[]
   routes: Route[]
-  parse(xml: string): any
-  getElementValue(element: Element, needle: string): any
+  parse(xml: string): unknown
+  getElementValue(element: Element, needle: string): unknown
 }
 
-export default GpxParser
+declare module './gpxparser' {
+  const gpxParser: { new (): GpxParser }
+  export default gpxParser
+}

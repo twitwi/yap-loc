@@ -1,10 +1,10 @@
-import GpxParser, { type Point, type Track } from 'gpxparser'
+import gpxParser, { type Point, type Track } from './gpxparser'
 
 export const argFact = (compareFn: (a: number[], b:number[])=>number[]) => (array:number[]) => array.map((el, idx) => [el, idx]).reduce(compareFn)[1]
 export const argMax = argFact((min:number[], el:number[]) => (el[0] > min[0] ? el : min))
 export const argMin = argFact((max:number[], el:number[]) => (el[0] < max[0] ? el : max))
 
-const __gpxParserTool = new GpxParser() as unknown as { calcDistanceBetween: (a: Point, b: Point) => number}
+const __gpxParserTool = new gpxParser() as unknown as { calcDistanceBetween: (a: Point, b: Point) => number}
 export function distance(a: Point, b: Point) {
   return __gpxParserTool.calcDistanceBetween(a, b)
 }

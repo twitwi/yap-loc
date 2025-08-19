@@ -8,7 +8,7 @@ import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
 import { representerNearestPointsInTrack } from '@/utils-analyze'
-import type { Track } from 'gpxparser'
+import type { Track } from '../gpxparser'
 import { NButton, NButtonGroup, NIcon } from 'naive-ui'
 import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
 
