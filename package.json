@@ -17,7 +17,6 @@
     "@vite-pwa/assets-generator": "^1.0.0",
     "@vueuse/core": "^12.8.2",
     "colorjs.io": "^0.5.2",
-    "gpxparser": "^3.0.8",
     "leaflet": "2.0.0-alpha",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.5.0",
