@@ -20,7 +20,7 @@ const { isFullscreen, toggle: toggleFS } = useFullscreen(root)
 
 const { height: windowHeight } = useWindowSize()
 
-onMounted(/*async*/ () => track.digestURL())
+onMounted(/*partially async*/ () => track.digestURL())
 
 </script>
 

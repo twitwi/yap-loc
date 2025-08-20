@@ -251,7 +251,18 @@ export const useTrackStore = defineStore(
         if ('start' in p) {
           data.startTime.value = guessTimestamp(p.start)
         }
-        if (countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints) {
+        const isSharing = countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints
+        if (isSharing) {
+          routeTo = 'follow'
+        }
+        if (routeTo === '' && local.lastRoute) {
+          router.replace({ name: local.lastRoute })
+        }
+        if (routeTo !== '') {
+          router.replace({ name: routeTo })
+        }
+        /* fully sync before here, so we can directly view a given tab */
+        if (isSharing) {
           const ts = guessTimestamp(p.at)
           try {
             const content = await appendSharedContent(
@@ -262,17 +273,10 @@ export const useTrackStore = defineStore(
               await this.loadSharedPoints(content)
             }
             removeURLParams()
-            routeTo = 'follow'
           } catch (e) {
             // e.g. cors limitations
             console.log("APPEND SHARED FAILED", e)
           }
-        }
-        if (routeTo === '' && local.lastRoute) {
-          router.replace({ name: local.lastRoute })
-        }
-        if (routeTo !== '') {
-          router.replace({ name: routeTo })
         }
       },
 

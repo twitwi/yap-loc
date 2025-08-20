@@ -83,8 +83,8 @@ const reportedMarkers = computed(() => {
 const tableHasPessimisticColumn = computed(() => Math.max(...track.tableRows.map(r => r.distAlt !== undefined ? 1 : 0)) > 0)
 
 const gpxLatLon = computed(() => {
-  if (!track.gpxContent) return [] as LatLngTuple[]
-  return track.gpxContent.tracks[0].points.map((p) => [p.lat, p.lon] as LatLngTuple)
+  if (!track.firstGpxTrack?.points) return [] as LatLngTuple[]
+  return track.firstGpxTrack.points.map((p) => [p.lat, p.lon] as LatLngTuple)
 })
 
 function fitGpx() {
@@ -209,7 +209,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
 <template>
   <div class="main-follow">
     <component :is="'style'">:root { --custom-panel-size: {{ local.customPanelSize }}vh; }</component>
-    <LMap @ready="e => map = e">
+    <LMap v-if="track.firstGpxTrack" @ready="e => map = e">
       <LTileLayer :url="local.tileFormat" />
       <LPolyline v-if="track.gpxContent" :lat-lngs="gpxLatLon" :weight="20" :opacity="0.25" color="cyan" @ready="e => polyline = e" />
       <LPolyline v-if="track.gpxContent" :lat-lngs="gpxLatLon" :weight="2" :opacity="0.75" color="darkred" :interactive="false" />
