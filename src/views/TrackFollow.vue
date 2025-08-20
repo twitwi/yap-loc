@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { useTrackStore, type TableRow } from '@/stores/track'
-import { computed, nextTick, ref, watchEffect } from 'vue'
+import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
 import 'leaflet/dist/leaflet.css'
 import { Map as LeafletMap, Polyline } from 'leaflet'
 import { LMap, LMarker, LPolyline, LTileLayer, LTooltip } from '@maxel01/vue-leaflet'
 import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn, Marker } from 'leaflet'
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
-import { representerNearestPointsInTrack } from '@/utils-analyze'
+import { argMax, argMin, nearestPointInList, representerNearestPointsInTrack } from '@/utils-analyze'
 import { NButton, NButtonGroup, NIcon } from 'naive-ui'
-import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
+import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, MaximizeRound, TableRowsTwotone } from '@vicons/material'
+import { useElementSize } from '@vueuse/core'
+import type { Point } from '@/gpxparser'
 
 const track = useTrackStore()
 const local = useLocalStore()
@@ -17,7 +19,7 @@ const local = useLocalStore()
 const map = ref(undefined as LeafletMap | undefined)
 const polyline = ref(undefined as Polyline | undefined)
 const ff = ref("🔥")
-const bottom = ref('none' as 'none' | 'table' | 'profile')
+const bottom = ref('profile' as 'none' | 'table' | 'profile')
 const selectedTs = ref(0)
 const currentTs = ref(0)
 
@@ -51,6 +53,7 @@ type MarkerDescription = {
   info: string
   selected?: boolean
   propEnd?: number
+  distForProfile?: number
 }
 
 const reportedMarkers = computed(() => {
@@ -77,6 +80,63 @@ const reportedMarkers = computed(() => {
     } as MarkerDescription
   })
 })
+
+const profileSVG = useTemplateRef('profileSVG')
+const { width: profileWidth, height: profileHeight } = useElementSize(profileSVG)
+const profileMargin = [1, 200]
+const profile = computed(() => {
+  if (!track.firstGpxTrack?.points) {
+    return { W: 0, H: 0, path: '', points: [], estimates: []}
+  }
+  const M = profileMargin
+  const gpxPoints = track.firstGpxTrack.points
+  const maxTs = Math.max(...track.tableRows.map(({ts}) => ts))
+  const maxDist = track.cumulatedDistance.slice(-1)[0]/1000
+  const mapDist = (d: number) => (d + M[0])/(2*M[0] + maxDist) * W
+  const altitude = gpxPoints.map(p => p.ele)
+  const minAlt = altitude[argMin(altitude)]
+  const maxAlt = altitude[argMax(altitude)]
+  const mapAlt = (alt: number) => H - H * (alt - (minAlt-M[1]) ) / (2*M[1] + maxAlt - minAlt)
+  const W = profileWidth.value
+  const H = profileHeight.value
+  const path = (
+    `M${mapDist(0)},${H} ` +
+    track.cumulatedDistance
+    .map((d, i) => [d/1000, altitude[i]])
+    .filter(o => o[1] !== null)
+    .map(([d, alt]) => `${mapDist(d)},${mapAlt(alt)}`)
+    .join(' L')
+    + ` L${mapDist(maxDist)},${H}`
+  )
+  const points = track.tableRows.map(({dist, ts, start}) => ({
+    ts, start,
+    propEnd: ts / maxTs,
+    path: `M${mapDist(dist)},0 l0,${H}`,
+  }))
+  const estimates = estimateMarkers.value.map(({key, distForProfile}, i) => ({
+    key,
+    path: `M${mapDist(distForProfile!)},0 l0,${H}`,
+    onclick() {
+      local.estimateLocations[track.lskey].splice(i, 1)
+    }
+  }))
+  return { W, H, path, points, estimates }
+})
+
+function clickProfile(ev: MouseEvent, M = profileMargin) {
+  const rect = profileSVG.value!.getBoundingClientRect()
+  const propX = (ev.clientX - rect.left) / rect.width
+  const maxDist = track.cumulatedDistance.slice(-1)[0]/1000
+  const dist = propX * (2*M[0] + maxDist) - M[0]
+  const i = track.cumulatedDistance.findIndex(d => d/1000 >= dist)
+  const p = track.firstGpxTrack!.points[i]
+  const maybeClose = estimateMarkers.value.findIndex(m => Math.abs(m.distForProfile! - dist) < 1)
+  if (maybeClose === -1) {
+    local.estimateLocations[track.lskey].push({ lat: p.lat, lng: p.lon } as LatLng)
+  } else {
+    local.estimateLocations[track.lskey].splice(maybeClose, 1)
+  }
+}
 
 const tableHasPessimisticColumn = computed(() => Math.max(...track.tableRows.map(r => r.distAlt !== undefined ? 1 : 0)) > 0)
 
@@ -130,6 +190,7 @@ const estimateMarkers = computed(() => {
       const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
       const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
       let info = 'No information yet'
+      let distForProfile = 0
 
       if (rows.length === 0 || rows[0].start) {
       } else {
@@ -155,6 +216,7 @@ const estimateMarkers = computed(() => {
           }
         })
         info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
+        distForProfile = Math.min(...times.map(([i]) => cumulatedDistance[i]/1000))
       }
 
       if (maybeEnd.includes(latlng)) {
@@ -165,6 +227,7 @@ const estimateMarkers = computed(() => {
         key: `key${Math.random()}`,
         latlng: latlng,
         info,
+        distForProfile,
       })
     }
   }
@@ -242,8 +305,13 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
           </tbody>
         </table>
       </div>
-      <div v-if="bottom === 'profile'" class="panel">
-        TODO
+      <div v-if="bottom === 'profile'" class="panel profile">
+        <svg :view-box="`0 0 ${profile.W} ${profile.H}`" style="width: 100%; height: 100%;" ref="profileSVG">
+          <path v-for="m in profile.points" :key="m.ts" :d="m.path" :style="{ ['--prop-end']: m.propEnd }" :class="{ prop1: m.propEnd === 1, marker: true, start: m.start, selected: selectedTs === m.ts, current: currentTs === m.ts }" />
+          <path v-for="m in profile.estimates" :key="`click-${m.key}`" @click="m.onclick()" :d="m.path" class="forclick" />
+          <path v-for="m in profile.estimates" :key="m.key" @click="m.onclick()" :d="m.path" :class="{ marker: true, estimate: true }" />
+          <path class="prof" :d="profile.path" @click="ev => clickProfile(ev)"></path>
+        </svg>
       </div>
       <NButtonGroup class="bar" size="medium">
         <NButton @click="bottom = bottom === 'table' ? 'none' : 'table'"><NIcon><TableRowsTwotone /></NIcon></NButton>
@@ -342,6 +410,32 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
   }
   tr:not(.start) i {
     visibility: hidden;
+  }
+}
+.profile svg {
+  .prof {
+    fill: darkslategray;
+  }
+  .forclick {
+    stroke: #8882;
+    stroke-width: 10px;
+  }
+  .marker {
+    stroke: #2880caff;
+    stroke-width: 2px;
+    &:not(.prop1):not(.estimate) {
+      opacity: .75;
+      filter: grayscale(calc(1 - 1 * var(--prop-end)));
+    }
+    &.selected {
+      outline: 5px solid #8007;
+    }
+    &.prop1 {
+      filter: brightness(150%);
+    }
+    &.estimate {
+      filter: hue-rotate(150deg);
+    }
   }
 }
 </style>
