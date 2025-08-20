@@ -8,7 +8,6 @@ import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
 import { representerNearestPointsInTrack } from '@/utils-analyze'
-import type { Track } from '../gpxparser'
 import { NButton, NButtonGroup, NIcon } from 'naive-ui'
 import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
 
@@ -53,10 +52,10 @@ type MarkerDescription = {
   selected?: boolean
   propEnd?: number
 }
-const estimateMarkers = ref([] as MarkerDescription[])
+const estimateLocations = ref([] as LatLng[])
 
 const reportedMarkers = computed(() => {
-  const trac = track.gpxContent?.tracks[0] as Track
+  const trac = track.firstGpxTrack
   if (!trac) {
     return []
   }
@@ -96,8 +95,23 @@ function fitGpx() {
 watchEffect(fitGpx)
 
 let lastEventListener = undefined as LeafletMouseEventHandlerFn | undefined
-watchEffect(() => { // update estimateMarkers
+watchEffect(() => { // click listener to add estimate location
   if (polyline.value && track.firstGpxTrack) {
+    if (lastEventListener) {
+      polyline.value.removeEventListener('click', lastEventListener)
+    }
+    lastEventListener = (ev: LeafletMouseEvent) => {
+      estimateLocations.value.push(ev.latlng)
+    }
+    polyline.value.addEventListener('click', lastEventListener)
+  }
+})
+const estimateMarkers = computed(() => {
+  if (!track.firstGpxTrack) {
+    return []
+  }
+  const res = [] as MarkerDescription[]
+  if (track.firstGpxTrack) {
     const trac = track.firstGpxTrack
     const cumulatedDistance = track.cumulatedDistance
     const cumulatedDPlus = track.cumulatedDPlus
@@ -105,11 +119,14 @@ watchEffect(() => { // update estimateMarkers
     const dppkm = local.dPlusPerKm
     const startTime = track.startTime
 
-    if (lastEventListener) {
-      polyline.value.removeEventListener('click', lastEventListener)
+    const maybeEnd = [] as LatLng[]
+    if (estimateLocations.value.length === 0 && !rows[0].start) {
+      const p = trac.points.slice(-1)[0]
+      maybeEnd.push({ lat: p.lat, lng: p.lon } as LatLng)
     }
-    lastEventListener = (ev: LeafletMouseEvent) => {
-      const nearests = representerNearestPointsInTrack({lat: ev.latlng.lat, lon: ev.latlng.lng}, trac, 1.5, 30)
+
+    for (const latlng of [...estimateLocations.value, ...maybeEnd]) {
+      const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, trac, 1.5, 30)
       const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
       const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
       let info = 'No information yet'
@@ -140,42 +157,21 @@ watchEffect(() => { // update estimateMarkers
         info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
       }
 
-      estimateMarkers.value.push({
+      if (maybeEnd.includes(latlng)) {
+        info = `[end] ${info}`
+      }
+
+      res.push({
         key: `key${Math.random()}`,
-        latlng: ev.latlng,
+        latlng: latlng,
         info,
       })
     }
-    polyline.value.addEventListener('click', lastEventListener)
   }
+  return res
 })
 
-function maybeAddEndAsEstimate() {
-  if (estimateMarkers.value.length === 0 && track.firstGpxTrack && !track.tableRows[0].start) {
-    const t = track.firstGpxTrack
-    const p = t.points.slice(-1)[0]
-    const dist = track.cumulatedDistance.slice(-1)[0] / 1000
-    const dplus = track.cumulatedDPlus.slice(-1)[0]
-    const strain = dist + dplus / local.dPlusPerKm
-    const r = track.tableRows[0]
-    const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / local.dPlusPerKm
-    const currentStrainPerTime = getStrain(r) / r.elapsed
-    const i = t.points.length - 1
-    const ts = track.startTime + strain / currentStrainPerTime
-    const info = formatTimeRacetimeDistDPlus(track.startTime, ts, [[track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]]], true)
-
-    estimateMarkers.value.push({
-      key: `end-${Math.random()}`,
-      latlng: { lat: p.lat, lng: p.lon },
-      info: `(END) ${info}`,
-    } as MarkerDescription)
-  }
-}
-watchEffect(maybeAddEndAsEstimate)
-
-
-
-function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[], redo = true) {
+function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = true) {
   const el = e.getElement()
   if (el) {
     if (m.selected) {
@@ -190,11 +186,11 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
       el.classList.add('estimate')
     }
   } else if (redo) {
-    nextTick(() => hookMarker(e, m, from, false))
+    nextTick(() => hookMarker(e, m, isEstimate, redo))
   }
-  if (from) {
+  if (isEstimate) {
     e.addEventListener('click', () => {
-      from.splice(from.findIndex(v => v.key === m.key), 1)
+      estimateLocations.value.splice(estimateMarkers.value.findIndex(v => v.key === m.key), 1)
     })
   } else {
     e.addEventListener('click', () => {
@@ -213,7 +209,7 @@ function hookMarker(e: Marker, m: MarkerDescription, from?: MarkerDescription[],
       <LTileLayer :url="local.tileFormat" />
       <LPolyline v-if="track.gpxContent" :lat-lngs="gpxLatLon" :weight="20" :opacity="0.25" color="cyan" @ready="e => polyline = e" />
       <LPolyline v-if="track.gpxContent" :lat-lngs="gpxLatLon" :weight="2" :opacity="0.75" color="darkred" :interactive="false" />
-      <LMarker v-for="m in estimateMarkers" :key="m.key" :lat-lng="m.latlng" @ready="e => hookMarker(e, m, estimateMarkers)" :z-index-offset="10000">
+      <LMarker v-for="m in estimateMarkers" :key="m.key" :lat-lng="m.latlng" @ready="e => hookMarker(e, m, true)" :z-index-offset="10000">
         <LTooltip :options="{ permanent: true }"><div v-html="m.info"></div></LTooltip>
       </LMarker>
       <LMarker v-for="m,im in reportedMarkers" :key="m.key" :lat-lng="m.latlng" @ready="e => hookMarker(e, m)" :zIndexOffset="im*10">
