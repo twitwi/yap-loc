@@ -52,7 +52,6 @@ type MarkerDescription = {
   selected?: boolean
   propEnd?: number
 }
-const estimateLocations = ref([] as LatLng[])
 
 const reportedMarkers = computed(() => {
   const trac = track.firstGpxTrack
@@ -101,7 +100,7 @@ watchEffect(() => { // click listener to add estimate location
       polyline.value.removeEventListener('click', lastEventListener)
     }
     lastEventListener = (ev: LeafletMouseEvent) => {
-      estimateLocations.value.push(ev.latlng)
+      local.estimateLocations[track.lskey].push(ev.latlng)
     }
     polyline.value.addEventListener('click', lastEventListener)
   }
@@ -120,12 +119,13 @@ const estimateMarkers = computed(() => {
     const startTime = track.startTime
 
     const maybeEnd = [] as LatLng[]
-    if (estimateLocations.value.length === 0 && !rows[0].start) {
+    const locations = local.estimateLocations[track.lskey]
+    if (locations.length === 0 && !rows[0].start) {
       const p = trac.points.slice(-1)[0]
       maybeEnd.push({ lat: p.lat, lng: p.lon } as LatLng)
     }
 
-    for (const latlng of [...estimateLocations.value, ...maybeEnd]) {
+    for (const latlng of [...locations, ...maybeEnd]) {
       const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, trac, 1.5, 30)
       const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
       const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
@@ -190,7 +190,7 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
   }
   if (isEstimate) {
     e.addEventListener('click', () => {
-      estimateLocations.value.splice(estimateMarkers.value.findIndex(v => v.key === m.key), 1)
+      local.estimateLocations[track.lskey].splice(estimateMarkers.value.findIndex(v => v.key === m.key), 1)
     })
   } else {
     e.addEventListener('click', () => {

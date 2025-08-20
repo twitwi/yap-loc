@@ -10,12 +10,23 @@ const track = useTrackStore()
 const nPoints = computed(() => {
   return local.points[track.lskey]?.length ?? 0
 })
+const nEstimateLocations = computed(() => {
+  return local.estimateLocations[track.lskey]?.length ?? 0
+})
 
 function promptClearLocalPoints() {
   const l = local.points[track.lskey]?.length
   if (l === undefined) return
   if (confirm('Really remove the ' + l + ' local points?')) {
     local.points[track.lskey].splice(0, l)
+  }
+}
+
+function promptClearLocalEstimateLocations() {
+  const l = local.estimateLocations[track.lskey]?.length
+  if (l === undefined) return
+  if (confirm('Really remove the ' + l + ' estimate locations?')) {
+    local.estimateLocations[track.lskey].splice(0, l)
   }
 }
 </script>
@@ -79,6 +90,7 @@ function promptClearLocalPoints() {
         <NInput v-model:value="local.cors" :autosize="true" ></NInput>
       </NSpace>
       <NButton :type="nPoints == 0 ? 'default' : 'warning'" @click="promptClearLocalPoints()">Clear ({{ nPoints }}) local points</NButton>
+      <NButton :type="nEstimateLocations == 0 ? 'default' : 'warning'" @click="promptClearLocalEstimateLocations()">Clear ({{ nEstimateLocations }}) estimate locations</NButton>
     </NCard>
     <NCard>
       <NSpace>

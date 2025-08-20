@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { TimedPoint } from '@/utils'
+import type { LatLng } from 'leaflet'
 
 export const TILE_FORMAT = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
 export const CORS = 'https://cors.heeere.com/'
@@ -18,6 +19,7 @@ export const useLocalStore = defineStore(
       hugeContribButton: ref(false),
       customPanelSize: ref(35), // vh
       //
+      estimateLocations: ref({} as Record<string, LatLng[]>),
       pendingContrib: ref([] as string[]),
       //
       lastLSKey: ref(''),

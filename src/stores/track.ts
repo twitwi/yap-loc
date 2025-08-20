@@ -283,6 +283,12 @@ export const useTrackStore = defineStore(
     }
     watchEffect(() => {
       const k = o.lskey.value
+      if (local.estimateLocations[k] === undefined) {
+        local.estimateLocations[k] = []
+      }
+    })
+    watchEffect(() => {
+      const k = o.lskey.value
       local.lastLSKey = k
       if (k && !local.usedLSKeys.includes(k)) {
         local.usedLSKeys.push(k)
