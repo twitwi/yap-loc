@@ -7,11 +7,10 @@ import { LMap, LMarker, LPolyline, LTileLayer, LTooltip } from '@maxel01/vue-lea
 import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn, Marker } from 'leaflet'
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
-import { argMax, argMin, nearestPointInList, representerNearestPointsInTrack } from '@/utils-analyze'
+import { argMax, argMin, representerNearestPointsInTrack } from '@/utils-analyze'
 import { NButton, NButtonGroup, NIcon } from 'naive-ui'
-import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, MaximizeRound, TableRowsTwotone } from '@vicons/material'
+import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
 import { useElementSize } from '@vueuse/core'
-import type { Point } from '@/gpxparser'
 
 const track = useTrackStore()
 const local = useLocalStore()
@@ -19,7 +18,7 @@ const local = useLocalStore()
 const map = ref(undefined as LeafletMap | undefined)
 const polyline = ref(undefined as Polyline | undefined)
 const ff = ref("🔥")
-const bottom = ref('profile' as 'none' | 'table' | 'profile')
+const bottom = ref('none' as 'none' | 'table' | 'profile')
 const selectedTs = ref(0)
 const currentTs = ref(0)
 
