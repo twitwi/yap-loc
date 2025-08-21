@@ -252,7 +252,7 @@ export const useTrackStore = defineStore(
           data.startTime.value = guessTimestamp(p.start)
         }
         const isSharing = countKeysAmong(p, "lat", "lon", "at") == 3 && local.shareNewPoints
-        if (isSharing) {
+        if (isSharing || 'lskey' in p) {
           routeTo = 'follow'
         }
         if (routeTo === '' && local.lastRoute) {
@@ -261,22 +261,29 @@ export const useTrackStore = defineStore(
         if (routeTo !== '') {
           router.replace({ name: routeTo })
         }
-        /* fully sync before here, so we can directly view a given tab */
+        /* fully non-async before here, so we can directly view a given tab */
+        let content = ''
         if (isSharing) {
           const ts = guessTimestamp(p.at)
           try {
-            const content = await appendSharedContent(
+            content = await appendSharedContent(
               data.lskey.value,
               niceTimestamp(ts) + "\n" + window.location.toString().replace(/#.*/, '') + "\n"
             )
-            if (local.importSharedPoints) {
-              await this.loadSharedPoints(content)
-            }
-            removeURLParams()
           } catch (e) {
             // e.g. cors limitations
             console.log("APPEND SHARED FAILED", e)
           }
+        } else if (local.importSharedPoints) {
+          try {
+            content = await getSharedContent(data.lskey.value)
+          } catch (e) {
+            console.log("GET SHARED FAILED", e)
+          }
+        }
+        removeURLParams()
+        if (content && local.importSharedPoints) {
+          await this.loadSharedPoints(content)
         }
       },
 
@@ -303,6 +310,9 @@ export const useTrackStore = defineStore(
       }
     })
     watchEffect(async () => {
+      if (o.lskey.value === '') {
+        return
+      }
       const gpxPath = o.gpxPath.value as string
       o.gpxContent.value = markRaw(await loadGpx(gpxPath) as GpxParser)
     })
