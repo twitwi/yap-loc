@@ -215,8 +215,8 @@ const estimateMarkers = computed(() => {
           }
         })
         info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
-        distForProfile = Math.min(...times.map(([i]) => cumulatedDistance[i]/1000))
       }
+      distForProfile = Math.min(...strains.map(([i]) => cumulatedDistance[i]/1000))
 
       if (maybeEnd.includes(latlng)) {
         info = `[end] ${info}`
