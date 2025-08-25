@@ -285,6 +285,9 @@ export const useTrackStore = defineStore(
         if (content && local.importSharedPoints) {
           await this.loadSharedPoints(content)
         }
+        if (local.pendingContrib.length > 0) {
+          await this.loadSharedPoints(local.pendingContrib.join('\n'))
+        }
       },
 
     }
