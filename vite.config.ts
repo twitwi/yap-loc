@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         output: {
           manualChunks: function (id) {
-            if (id.includes('node_module') && includesAny(id, 'naive-ui', 'pinia', 'vue', 'leaflet', 'gpxparser', 'sprintf', 'colorjs')) {
+            if (id.includes('node_module') && includesAny(id, 'naive-ui', 'pinia', 'vue', 'leaflet', 'gpxparser', 'sprintf', 'colorjs', 'kd-tree')) {
               return 'base'
             }
           },
