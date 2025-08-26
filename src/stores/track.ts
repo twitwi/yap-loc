@@ -2,7 +2,7 @@ import { appendSharedContent, countKeysAmong, getProtectedTextURL, getSharedCont
 import { defineStore } from "pinia"
 import { computed, markRaw, ref, watchEffect } from "vue"
 import { useLocalStore } from "./persist"
-import { computeCumulatedDPlus, representerNearestPointsInTrack } from "@/utils-analyze"
+import { computeCumulatedDPlus, makeKdTreeFromTrack, representerNearestPointsInTrack, type KdTree } from "@/utils-analyze"
 import router from "@/router"
 import type { GpxParser } from "@/gpxparser"
 
@@ -47,6 +47,12 @@ export const useTrackStore = defineStore(
       baseURLWithATrack: computed((() => data.baseURL.value + '?A=' + o.lskey.value) as () => string),
       sharedURLlink: computed(() => getProtectedTextURL(lskeyToDocid(data.lskey.value), false, false, true)),
       firstGpxTrack: computed(() => data.gpxContent.value?.tracks?.[0]),
+      kdTree: computed((() => {
+        if (o.firstGpxTrack.value === undefined) {
+          return undefined
+        }
+        return makeKdTreeFromTrack(o.firstGpxTrack.value)
+      }) as (() => KdTree | undefined)),
       cumulatedDistance: computed((() => {
         if (!o.firstGpxTrack.value) {
           return []
@@ -60,15 +66,15 @@ export const useTrackStore = defineStore(
         return computeCumulatedDPlus(o.firstGpxTrack.value)
       }) as () => number[]),
       tableRows: computed((() => {
-        if (!o.firstGpxTrack.value) {
+        if (!o.firstGpxTrack.value || !o.kdTree.value) {
           return []
         }
         const cumulatedDistance = o.cumulatedDistance.value
         const cumulatedDPlus = o.cumulatedDPlus.value
         const startTime = o.startTime.value
-        const track = o.firstGpxTrack.value
+        const tree = o.kdTree.value
         const points = local.points[o.lskey.value]
-        let hypothesis = points.map(p => representerNearestPointsInTrack(p, track, 1.5, 30))
+        let hypothesis = points.map(p => representerNearestPointsInTrack(p, tree, 1.5, 30))
         let lastWithoutEmpty = hypothesis
         const hasEmpty = () => hypothesis.findIndex(h => h.length === 0) !== -1
         const rememberIfNotEmpty = () => {
@@ -78,67 +84,67 @@ export const useTrackStore = defineStore(
         }
         // remove any candidate that does not comply with the speed limits
         hypothesis = hypothesis.map((h, i) => h.filter( ind => {
-        const p = points[i]
-        const elapsed = p.ts - startTime // ms
-        // we keep the points acquired before the start but we will need to handle them
-        if (elapsed < 0) {
-          return true
-        }
-        const v = cumulatedDistance[ind] / 1000 / (elapsed / 1000 / 3600)
-        // we ignore the lower speed limit at the beginning (30min), in case the race starts a little late
-        if (elapsed < 30*60) {
-          return v < local.maxSpeed
-        }
-        return v > local.minSpeed && v < local.maxSpeed
-      }))
-      rememberIfNotEmpty()
+          const p = points[i]
+          const elapsed = p.ts - startTime // ms
+          // we keep the points acquired before the start but we will need to handle them
+          if (elapsed < 0) {
+            return true
+          }
+          const v = cumulatedDistance[ind] / 1000 / (elapsed / 1000 / 3600)
+          // we ignore the lower speed limit at the beginning (30min), in case the race starts a little late
+          if (elapsed < 30*60) {
+            return v < local.maxSpeed
+          }
+          return v > local.minSpeed && v < local.maxSpeed
+        }))
+        rememberIfNotEmpty()
 
-      // for the before-the-start points, we fake their closest index as being the start point
-      hypothesis = hypothesis.map((h, i) => {
-        const p = points[i]
-        const elapsed = p.ts - startTime
-        if (elapsed < 0) {
-          return [0]
+        // for the before-the-start points, we fake their closest index as being the start point
+        hypothesis = hypothesis.map((h, i) => {
+          const p = points[i]
+          const elapsed = p.ts - startTime
+          if (elapsed < 0) {
+            return [0]
+          }
+          return h
+        })
+        rememberIfNotEmpty()
+
+        { // remove all incoherent points (that come before in the track than the previous one)
+          const minH = hypothesis.map(h => Math.min(...h))
+          hypothesis = hypothesis.map((h, i) => h.filter(ind => i===hypothesis.length-1 || ind <= minH[i+1]))
         }
-        return h
-      })
-      rememberIfNotEmpty()
+        rememberIfNotEmpty()
 
-      { // remove all incoherent points (that come before in the track than the previous one)
-        const minH = hypothesis.map(h => Math.min(...h))
-        hypothesis = hypothesis.map((h, i) => h.filter(ind => i===hypothesis.length-1 || ind <= minH[i+1]))
-      }
-      rememberIfNotEmpty()
+        // fill in the information for the rendering
+        let res = [] as TableRow[]
+        lastWithoutEmpty.forEach((h, i) => {
+          const p = points[i]
+          const elapsed = p.ts - startTime // ms
+          const row = { ...p, elapsed } as Partial<TableRow>
+          let ind = h[h.length-1]
+          row.dist = cumulatedDistance[ind] / 1000 // km
+          row.vel = row.dist / (elapsed / 1000 / 3600) // km/h
+          row.dplus = cumulatedDPlus[ind]
+          if (h.length > 1) {
+            ind = h[0]
+            row.distAlt = cumulatedDistance[ind] / 1000 // km
+            row.velAlt = row.distAlt / (elapsed / 1000 / 3600) // km/h
+            row.dplusAlt = cumulatedDPlus[ind]
+          }
+          res.push(row as TableRow)
+        })
 
-      // fill in the information for the rendering
-      let res = [] as TableRow[]
-      lastWithoutEmpty.forEach((h, i) => {
-        const p = points[i]
-        const elapsed = p.ts - startTime // ms
-        const row = { ...p, elapsed } as Partial<TableRow>
-        let ind = h[h.length-1]
-        row.dist = cumulatedDistance[ind] / 1000 // km
-        row.vel = row.dist / (elapsed / 1000 / 3600) // km/h
-        row.dplus = cumulatedDPlus[ind]
-        if (h.length > 1) {
-          ind = h[0]
-          row.distAlt = cumulatedDistance[ind] / 1000 // km
-          row.velAlt = row.distAlt / (elapsed / 1000 / 3600) // km/h
-          row.dplusAlt = cumulatedDPlus[ind]
+        { // insert fake (start) point
+          const p0 = o.firstGpxTrack.value.points[0]
+          res = [
+            ...res.filter(p => p.elapsed <= 0).map(p => ({...p, start: true})),
+            { lat: p0.lat, lon: p0.lon, ts: startTime, elapsed: 0, dist: 0, dplus: 0, vel: 0, start: true },
+            ...res.filter(p => p.elapsed > 0).map(p => ({...p, start: false})),
+          ]
         }
-        res.push(row as TableRow)
-      })
-
-      { // insert fake (start) point
-        const p0 = track.points[0]
-        res = [
-          ...res.filter(p => p.elapsed <= 0).map(p => ({...p, start: true})),
-          { lat: p0.lat, lon: p0.lon, ts: startTime, elapsed: 0, dist: 0, dplus: 0, vel: 0, start: true },
-          ...res.filter(p => p.elapsed > 0).map(p => ({...p, start: false})),
-        ]
-      }
-      res.sort((a, b) => b.ts - a.ts)
-      return res
+        res.sort((a, b) => b.ts - a.ts)
+        return res
       }) as () => TableRow[]),
 
       contributeURL(lat: number, lon: number, ts: number) {
@@ -216,7 +222,7 @@ export const useTrackStore = defineStore(
         const res = []
         try {
           const sharedContent = content ? content : await getSharedContent(o.lskey.value)
-          const isBaseURLOk = (l: string) => l.startsWith(o.baseURL.value) || l.startsWith('https://twitwi.github.io/cap_nn/')
+          const isBaseURLOk = (l: string) => l.startsWith(o.baseURL.value) || l.startsWith('https://twitwi.github.io/cap_nn/') || l.startsWith('https://apps.heeere.com/loc/')
           for (const l of sharedContent.split("\n").filter(isBaseURLOk)) {
             const p = getURLParams(new URL(l))
             if (countKeysAmong(p, "lat", "lon", "at") == 3 && p.lskey === lskey) {

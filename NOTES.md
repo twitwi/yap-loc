@@ -1,4 +1,5 @@
 
+
 ~~~
 #pnpm  build-only --base /loc/
 pnpm  build --base /loc/
@@ -7,7 +8,6 @@ pnpm  build --base /loc/
 
 TODO
 
-- new: persist estimate points
 - new: show estimate in the table?
 - new: use first point instead of start
 

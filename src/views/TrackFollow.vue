@@ -56,8 +56,9 @@ type MarkerDescription = {
 }
 
 const reportedMarkers = computed(() => {
-  const trac = track.firstGpxTrack
-  if (!trac) {
+  const tree = track.kdTree
+
+  if (!tree) {
     return []
   }
   const start = track.startTime
@@ -67,7 +68,7 @@ const reportedMarkers = computed(() => {
   }
   const end = Math.max(...localPoints.map(p => p.ts))
   return localPoints.slice().sort((a, b) => a.ts - b.ts).map((p: TimedPoint) => {
-    const nearests = representerNearestPointsInTrack({lat: p.lat, lon: p.lon}, trac, 1.5, 30)
+    const nearests = representerNearestPointsInTrack({lat: p.lat, lon: p.lon}, tree, 1.5, 30)
     const info = nearests.map(i => [track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]] as [number, number])
     return {
       key: `rep-${Math.random()}`,
@@ -169,8 +170,9 @@ const estimateMarkers = computed(() => {
     return []
   }
   const res = [] as MarkerDescription[]
-  if (track.firstGpxTrack) {
+  if (track.firstGpxTrack && track.kdTree) {
     const trac = track.firstGpxTrack
+    const tree = track.kdTree
     const cumulatedDistance = track.cumulatedDistance
     const cumulatedDPlus = track.cumulatedDPlus
     const rows = track.tableRows
@@ -185,7 +187,7 @@ const estimateMarkers = computed(() => {
     }
 
     for (const latlng of [...locations, ...maybeEnd]) {
-      const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, trac, 1.5, 30)
+      const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, tree, 1.5, 30)
       const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
       const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
       let info = 'No information yet'

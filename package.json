@@ -17,6 +17,7 @@
     "@vite-pwa/assets-generator": "^1.0.0",
     "@vueuse/core": "^12.8.2",
     "colorjs.io": "^0.5.2",
+    "kd-tree-javascript": "^1.0.3",
     "leaflet": "2.0.0-alpha",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.5.0",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.1",
+    "@types/kd-tree-javascript": "^1.0.3",
     "@types/leaflet": "^1.9.20",
     "@types/node": "^22.14.0",
     "@types/sprintf-js": "^1.1.4",
