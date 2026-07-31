@@ -55,6 +55,14 @@ function promptClearPendingContrib() {
   }
 }
 
+async function dlGpx() {
+  const content = await fetch(track.gpxPath).then(r => r.blob())
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(content)
+  a.download = track.gpxPath.split('/').pop() || 'track.gpx'
+  a.click()
+}
+
 </script>
 
 <template>
@@ -78,7 +86,7 @@ function promptClearPendingContrib() {
       <summary>Links</summary>
       <ul>
         <li>
-          Download GPX file: <a :href="track.gpxPath"> {{ track.gpxPath }}</a>
+          Download GPX file: <button @click="dlGpx()">{{ track.gpxPath }}</button>
         </li>
         <li>
           View/Edit shared points: <a :href="track.sharedURLlink" target="_blank">{{ track.sharedURLlink }}</a>
