@@ -4,6 +4,9 @@ import { CryptoJS } from "./protectedtext/cryptojs"
 import { useLocalStore } from "./stores/persist"
 
 
+const NEW_PAD_SALT = '3c8740074076ba037a42c3289fbf4c421c0a3e2e72b3736f57566129325c8cee'
+const PROTECTEDTEXT_SERVER = '/prtctdtxt/' // 'http://127.0.0.1:7777/' //'https://www.protectedtext.com/' +
+
 export function safeHTMLText(txt: string) {
   return new Option(txt).innerHTML
 }
@@ -140,11 +143,12 @@ export function getProtectedTextURL(docid: string, get = true, cors = true as bo
   }
   return (
     cors +
-    ('https://www.protectedtext.com/' +
-    docid +
-    (get ? '?action=getJSON' : '') +
-    (pass === true ? '?' + protectedTextPassword : pass ? '?' + pass : ''))
-  )
+    (
+      PROTECTEDTEXT_SERVER +
+      docid +
+      (get ? '?action=getJSON' : '') +
+      (pass === true ? '?' + protectedTextPassword : pass ? '?' + pass : ''))
+    )
 }
 export async function appendSharedContent(lskey: string, v: string, pass = protectedTextPassword) {
   return await getSharedContent(lskey, pass, v)
@@ -180,6 +184,7 @@ export async function getSharedContent(lskey: string, pass = protectedTextPasswo
       currentHashContent,
       encryptedContent,
       action: 'save',
+      newPadProof: CryptoJS.SHA512(docid + NEW_PAD_SALT).toString(), // gatekeeping for creation only
     }),
   })
   return content

@@ -4,7 +4,7 @@ import type { TimedPoint } from '@/utils'
 import type { LatLng } from 'leaflet'
 
 export const TILE_FORMAT = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png'
-export const CORS = 'https://cors.heeere.com/'
+export const CORS = ''
 
 // More or less raw. Domain logic is in the track store.
 export const useLocalStore = defineStore(
