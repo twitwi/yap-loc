@@ -16,6 +16,7 @@ export type TableRow = {
   lat: number
   lon: number
   start?: boolean
+  endInfo?: boolean
   elapsed: number // ms
   dist: number // km
   dplus: number // m
@@ -142,6 +143,14 @@ export const useTrackStore = defineStore(
             { lat: p0.lat, lon: p0.lon, ts: startTime, elapsed: 0, dist: 0, dplus: 0, vel: 0, start: true },
             ...res.filter(p => p.elapsed > 0).map(p => ({...p, start: false})),
           ]
+          if (res.slice(-1)[0].start) {
+            const dist = cumulatedDistance.slice(-1)[0] / 1000
+            const dplus = cumulatedDPlus.slice(-1)[0]
+            const pz = o.firstGpxTrack.value.points.slice(-1)[0]
+            const elapsed = 1 + Math.max(...res.map(r => r.ts))
+
+            res.unshift({lat: pz.lat, lon: pz.lon, ts: startTime, elapsed, dist, dplus, vel: 0, endInfo: true })
+          }
         }
         res.sort((a, b) => b.ts - a.ts)
         return res

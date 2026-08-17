@@ -41,7 +41,7 @@ function formatProgressTableCell(elapsed: number, dist: number, dplus: number, v
   const strainPerHour = (strain / (elapsed / 1000 / 3600)).toFixed(1)
   dist = Math.round(dist)
   dplus = Math.round(dplus)
-  return `${dist}km, ${dplus}D+, ${strain.toFixed(0)}${f}<br/>(${vel.toFixed(1)}km/h, ${strainPerHour}${f}/h)`
+  return `<span class="cumulateds">${dist}km, ${dplus}D+, ${strain.toFixed(0)}${f}</span><br/><span class="velocities">(${vel.toFixed(1)}km/h, ${strainPerHour}${f}/h@</span>`
 
 }
 
@@ -293,7 +293,7 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
             </tr>
             </thead>
           <tbody>
-            <tr v-for="r in track.tableRows" :key="r.ts" :class="{ start: r.start, selected: selectedTs === r.ts, current: currentTs === r.ts }" @click="selectedTs = r.ts">
+            <tr v-for="r in track.tableRows" :key="r.ts" :class="{ start: r.start, endInfo: r.endInfo, selected: selectedTs === r.ts, current: currentTs === r.ts }" @click="selectedTs = r.ts">
               <td>
                 <i>(start)</i> 
                 <span v-html="niceTimestamp(r.ts).replace(/ /, '<br/><i>(start)</i> ')"></span>
@@ -332,6 +332,10 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  .leaflet-tooltip {
+    font-size: 1.2em;
+  }
 
   .leaflet-marker-icon {
     &:not(.prop1):not(.estimate) {
@@ -410,6 +414,9 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
     font-size: .75em;
   }
   tr:not(.start) i {
+    visibility: hidden;
+  }
+  tr.endInfo .velocities {
     visibility: hidden;
   }
 }
