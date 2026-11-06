@@ -27,6 +27,14 @@ export type TableRow = {
   velAlt?: number
 }
 
+// Where this device is, as opposed to the points of the tracked runner
+export type MyLocation = {
+  lat: number
+  lon: number
+  accuracy: number // meters
+  ts: number // ms
+}
+
 export const useTrackStore = defineStore(
   'track',
   () => {
@@ -39,6 +47,10 @@ export const useTrackStore = defineStore(
       baseURL: ref(window.location.origin + window.location.pathname),
       logs: ref([] as DebugLog[]),
       gpxContent: ref(undefined as GpxParser | undefined),
+      // where this device is (display only: never persisted, never shared)
+      myLocation: ref(undefined as MyLocation | undefined),
+      myLocationError: ref(undefined as string | undefined),
+      myLocationPending: ref(false),
     }
     const o = {
       ...data,
@@ -224,6 +236,37 @@ export const useTrackStore = defineStore(
             maximumAge: 10000,
           })
         })
+      },
+
+      // We refresh our own position on demand (no watch, so no battery drain and
+      // no surprise permission prompts): whoever looks is the one who taps.
+      async refreshMyLocation() {
+        o.myLocationPending.value = true
+        o.myLocationError.value = undefined
+        try {
+          const pos = await o.getDeviceLocation()
+          const fix = (v: number) => parseFloat(v.toFixed(4))
+          o.myLocation.value = {
+            lat: fix(pos.coords.latitude),
+            lon: fix(pos.coords.longitude),
+            accuracy: Math.round(pos.coords.accuracy),
+            ts: Math.round(pos.timestamp),
+          }
+        } catch (e) {
+          const ee = e as { code?: number; message?: string }
+          o.myLocationError.value = ee.message
+            || (ee.code === 1 ? 'permission denied'
+              : ee.code === 2 ? 'position unavailable'
+              : 'geolocation timeout')
+          o.myLocation.value = undefined
+        } finally {
+          o.myLocationPending.value = false
+        }
+      },
+
+      clearMyLocation() {
+        o.myLocation.value = undefined
+        o.myLocationError.value = undefined
       },
 
       async loadSharedPoints(content?: string) {

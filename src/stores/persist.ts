@@ -17,6 +17,7 @@ export const useLocalStore = defineStore(
       enableBackup: ref(false),
       enableFullscreen: ref(false),
       hugeContribButton: ref(false),
+      showMyLocation: ref(false),
       customPanelSize: ref(35), // vh
       //
       estimateLocations: ref({} as Record<string, LatLng[]>),

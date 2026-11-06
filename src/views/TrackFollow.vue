@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { useTrackStore, type TableRow } from '@/stores/track'
-import { computed, nextTick, ref, useTemplateRef, watchEffect } from 'vue'
+import { computed, nextTick, onMounted, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import 'leaflet/dist/leaflet.css'
-import { Map as LeafletMap, Polyline } from 'leaflet'
-import { LMap, LMarker, LPolyline, LTileLayer, LTooltip } from '@maxel01/vue-leaflet'
+import { DivIcon, Map as LeafletMap, Polyline } from 'leaflet'
+import { LCircle, LMap, LMarker, LPolyline, LTileLayer, LTooltip } from '@maxel01/vue-leaflet'
 import type { LatLng, LatLngTuple, LeafletMouseEvent, LeafletMouseEventHandlerFn, Marker } from 'leaflet'
 import { useLocalStore } from '@/stores/persist'
 import { elapsedTimeToString, niceTimestamp, type TimedPoint } from '@/utils'
-import { argMax, argMin, representerNearestPointsInTrack } from '@/utils-analyze'
+import { argMax, argMin, distanceToTrack, representerNearestPointsInTrack, type KdTree } from '@/utils-analyze'
 import { NButton, NButtonGroup, NIcon } from 'naive-ui'
-import { AreaChartTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
-import { useElementSize } from '@vueuse/core'
+import { AreaChartTwotone, GpsFixedTwotone, GpsNotFixedTwotone, KeyboardDoubleArrowDownSharp, TableRowsTwotone } from '@vicons/material'
+import { useElementSize, useNow } from '@vueuse/core'
 
 const track = useTrackStore()
 const local = useLocalStore()
@@ -165,74 +165,146 @@ watchEffect(() => { // click listener to add estimate location
     polyline.value.addEventListener('click', lastEventListener)
   }
 })
+// Where a point is on the track, and if possible at what time the tracked runner is
+// estimated to pass there. Shared by the estimate markers and our own position.
+function describePointOnTrack(latlng: { lat: number, lng: number }, tree: KdTree) {
+  const cumulatedDistance = track.cumulatedDistance
+  const cumulatedDPlus = track.cumulatedDPlus
+  const rows = track.tableRows
+  const dppkm = local.dPlusPerKm
+  const startTime = track.startTime
+
+  const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, tree, 1.5, 30)
+  const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
+  const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
+  let info = ''
+
+  if (rows.length !== 0 && !rows[0].start) {
+    const times = strains.map(([i, s]) => {
+      let iafter = rows.length - 1
+      for (; iafter >= 0 ; iafter--) {
+        if (s < getStrain(rows[iafter])) {
+          break
+        }
+      }
+      if (iafter === -1) {
+        const r = rows[0]
+        const currentStrainPerTime = getStrain(r) / r.elapsed
+        return [i, startTime + s / currentStrainPerTime]
+      } else {
+        const r1 = rows[iafter+1]
+        const r2 = rows[iafter]
+        const s1 = getStrain(r1)
+        const s2 = getStrain(r2)
+        const t1 = r1.elapsed || 0
+        const t2 = r2.elapsed || 0
+        return [i, startTime + t1 + (s-s1) / (s2-s1) * (t2-t1)]
+      }
+    })
+    info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
+  }
+  const distForProfile = strains.length === 0 ? 0 : Math.min(...strains.map(([i]) => cumulatedDistance[i] / 1000))
+  return { info: info || 'No information yet', hasEta: info !== '', indices: nearests, distForProfile }
+}
+
 const estimateMarkers = computed(() => {
-  if (!track.firstGpxTrack) {
+  const trac = track.firstGpxTrack
+  const tree = track.kdTree
+  if (!trac || !tree) {
     return []
   }
   const res = [] as MarkerDescription[]
-  if (track.firstGpxTrack && track.kdTree) {
-    const trac = track.firstGpxTrack
-    const tree = track.kdTree
-    const cumulatedDistance = track.cumulatedDistance
-    const cumulatedDPlus = track.cumulatedDPlus
-    const rows = track.tableRows
-    const dppkm = local.dPlusPerKm
-    const startTime = track.startTime
+  const rows = track.tableRows
 
-    const maybeEnd = [] as LatLng[]
-    const locations = local.estimateLocations[track.lskey]
-    if (locations.length === 0 && !rows[0].start) {
-      const p = trac.points.slice(-1)[0]
-      maybeEnd.push({ lat: p.lat, lng: p.lon } as LatLng)
-    }
+  const maybeEnd = [] as LatLng[]
+  const locations = local.estimateLocations[track.lskey]
+  if (locations.length === 0 && !rows[0].start) {
+    const p = trac.points.slice(-1)[0]
+    maybeEnd.push({ lat: p.lat, lng: p.lon } as LatLng)
+  }
 
-    for (const latlng of [...locations, ...maybeEnd]) {
-      const nearests = representerNearestPointsInTrack({lat: latlng.lat, lon: latlng.lng}, tree, 1.5, 30)
-      const strains = nearests.map(i => [i, cumulatedDistance[i] / 1000 + cumulatedDPlus[i] / dppkm])
-      const getStrain = (r: TableRow) => r.start ? 0 : r.dist + r.dplus / dppkm
-      let info = 'No information yet'
-      let distForProfile = 0
-
-      if (rows.length === 0 || rows[0].start) {
-      } else {
-        const times = strains.map(([i, s]) => {
-          let iafter = rows.length - 1
-          for (; iafter >= 0 ; iafter--) {
-            if (s < getStrain(rows[iafter])) {
-              break
-            }
-          }
-          if (iafter === -1) {
-            const r = rows[0]
-            const currentStrainPerTime = getStrain(r) / r.elapsed
-            return [i, startTime + s / currentStrainPerTime]
-          } else {
-            const r1 = rows[iafter+1]
-            const r2 = rows[iafter]
-            const s1 = getStrain(r1)
-            const s2 = getStrain(r2)
-            const t1 = r1.elapsed || 0
-            const t2 = r2.elapsed || 0
-            return [i, startTime + t1 + (s-s1) / (s2-s1) * (t2-t1)]
-          }
-        })
-        info = times.map(([i, ts]) => formatTimeRacetimeDistDPlus(startTime, ts, [[cumulatedDistance[i] / 1000, cumulatedDPlus[i]]], true)).join('<br/>')
-      }
-      distForProfile = Math.min(...strains.map(([i]) => cumulatedDistance[i]/1000))
-
-      if (maybeEnd.includes(latlng)) {
-        info = `[end] ${info}`
-      }
-
-      res.push({
-        key: `key${Math.random()}`,
-        latlng: latlng,
-        info,
-        distForProfile,
-      })
-    }
+  for (const latlng of [...locations, ...maybeEnd]) {
+    const { info, distForProfile } = describePointOnTrack(latlng, tree)
+    res.push({
+      key: `key${Math.random()}`,
+      latlng: latlng,
+      info: maybeEnd.includes(latlng) ? `[end] ${info}` : info,
+      distForProfile,
+    })
   }
   return res
+})
+
+// ===== our own position (the one looking at the map, not the tracked runner) =====
+
+const meIcon = new DivIcon({ className: 'me-dot', iconSize: [22, 22], iconAnchor: [11, 11] })
+const now = useNow({ interval: 15000 })
+const MAX_DIST_TO_COURSE = 5000 // meters: beyond that, projecting us on the course is meaningless
+
+const showMe = computed(() => local.showMyLocation && track.myLocation !== undefined)
+
+const meMarker = computed(() => {
+  const me = track.myLocation
+  const lat = me?.lat ?? 0
+  const lon = me?.lon ?? 0
+  const accuracy = me?.accuracy ?? 0
+  const age = me ? now.value.getTime() - me.ts : 0
+  let info = ''
+  const tree = track.kdTree
+  // the (start) and end-info rows are not real information about the runner
+  const knowsRunner = track.tableRows.some(r => !r.start && !r.endInfo)
+  if (me && tree) {
+    const dTrack = distanceToTrack({ lat, lon }, tree)
+    if (dTrack > MAX_DIST_TO_COURSE) {
+      info = `Hors parcours<br/>└─ à ~${(dTrack / 1000).toFixed(1)}km de la trace`
+    } else {
+      const { info: etaInfo, hasEta, indices } = describePointOnTrack({ lat, lng: lon }, tree)
+      info = hasEta && knowsRunner
+        ? etaInfo
+        : [ // nothing known about the runner yet, but we can still say where on the course we are
+          ...new Set(indices.map(i => formatDistDPlus(track.cumulatedDistance[i] / 1000, track.cumulatedDPlus[i]))),
+        ].map(s => `≈ ${s}`).join('<br/>')
+    }
+  }
+  return {
+    latlng: { lat, lng: lon } as LatLng,
+    radius: Math.max(accuracy, 15),
+    info,
+    accuracyText: accuracy >= 1000 ? `${(accuracy / 1000).toFixed(1)}km` : `${Math.round(accuracy)}m`,
+    time: me ? niceTimestamp(me.ts).slice(11, 16) : '',
+    ageText: age < 60000 ? '' : age < 3600000 ? `${Math.round(age / 60000)} min` : elapsedTimeToString(age),
+    stale: age > 2 * 60 * 1000,
+    latLon: `${lat.toFixed(4)}, ${lon.toFixed(4)}`,
+  }
+})
+
+// One button for both showing and refreshing: whoever taps is the one who wants to know now.
+function clickMeButton() {
+  if (!local.showMyLocation) {
+    local.showMyLocation = true // the watcher below does the actual fetch
+  } else {
+    track.refreshMyLocation()
+  }
+}
+
+function hideMe() {
+  local.showMyLocation = false // the watcher below clears the position
+}
+
+watch(() => local.showMyLocation, (show) => {
+  if (show) {
+    track.refreshMyLocation()
+  } else {
+    track.clearMyLocation()
+  }
+})
+
+onMounted(() => {
+  if (!local.showMyLocation) {
+    track.clearMyLocation() // e.g. turned off from the config tab
+  } else if (track.myLocation === undefined && track.myLocationError === undefined) {
+    track.refreshMyLocation() // coming back to the tab (or reloading) should not require tapping again
+  }
 })
 
 function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = true) {
@@ -279,6 +351,19 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
       <LMarker v-for="m,im in reportedMarkers" :key="m.key" :lat-lng="m.latlng" @ready="e => hookMarker(e, m)" :zIndexOffset="im*10">
         <LTooltip><div v-html="m.info"></div></LTooltip>
       </LMarker>
+      <template v-if="showMe">
+        <LCircle :lat-lng="meMarker.latlng" :radius="meMarker.radius" color="#1E88E5" :weight="2" :opacity="0.6" :fill-opacity="0.12" :interactive="false" />
+        <LMarker :lat-lng="meMarker.latlng" :options="{ icon: meIcon }" :z-index-offset="20000">
+          <LTooltip :options="{ permanent: true, interactive: true, direction: 'top' }">
+            <div class="me-tip">
+              <b>📍 Moi</b><span class="close" title="masquer" @click="hideMe()">✕</span><br />
+              <span :class="{ stale: meMarker.stale }">±{{ meMarker.accuracyText }} · {{ meMarker.time }}<template v-if="meMarker.ageText"> (il y a {{ meMarker.ageText }})</template></span><br />
+              <span class="latlon">{{ meMarker.latLon }}</span>
+              <div v-html="meMarker.info"></div>
+            </div>
+          </LTooltip>
+        </LMarker>
+      </template>
     </LMap>
     <div :class="{ bottom: true, [`bottom-${bottom}`]: true}">
       <div v-if="bottom === 'table'" class="panel">
@@ -314,10 +399,18 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
           <path class="prof" :d="profile.path" @click="ev => clickProfile(ev)"></path>
         </svg>
       </div>
+      <div v-if="track.myLocationError" class="me-error">{{ track.myLocationError }}</div>
       <NButtonGroup class="bar" size="medium">
         <NButton @click="bottom = bottom === 'table' ? 'none' : 'table'"><NIcon><TableRowsTwotone /></NIcon></NButton>
         <NButton @click="bottom = 'none'" style="flex: 20"><NIcon><KeyboardDoubleArrowDownSharp /></NIcon></NButton>
         <NButton @click="bottom = bottom === 'profile' ? 'none' : 'profile'"><NIcon><AreaChartTwotone /></NIcon></NButton>
+        <NButton
+          style="flex: 20"
+          :type="track.myLocationError ? 'error' : local.showMyLocation ? 'primary' : 'default'"
+          :loading="track.myLocationPending"
+          :title="track.myLocationError ?? (local.showMyLocation ? 'Actualiser ma position' : 'Afficher ma position')"
+          @click="clickMeButton()"
+        ><NIcon><GpsFixedTwotone v-if="showMe" /><GpsNotFixedTwotone v-else /></NIcon></NButton>
       </NButtonGroup>
     </div>
   </div>
@@ -338,7 +431,7 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
   }
 
   .leaflet-marker-icon {
-    &:not(.prop1):not(.estimate) {
+    &:not(.prop1):not(.estimate):not(.me-dot) {
       opacity: .75;
       filter: grayscale(calc(1 - 1 * var(--prop-end)));
     }
@@ -350,6 +443,32 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
     }
     &.estimate {
       filter: hue-rotate(150deg);
+    }
+    &.me-dot {
+      background: #1E88E5;
+      border: 2px solid white;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px #1E88E566, 0 1px 6px #0006;
+      opacity: 1;
+    }
+  }
+
+  .me-tip {
+    .close {
+      margin-left: .5em;
+      padding: 0 .3em;
+      cursor: pointer;
+      opacity: .5;
+      &:hover {
+        opacity: 1;
+      }
+    }
+    .latlon {
+      font-size: .7em;
+      color: #666;
+    }
+    .stale {
+      color: #a33;
     }
   }
 }
@@ -368,6 +487,17 @@ function hookMarker(e: Marker, m: MarkerDescription, isEstimate = false, redo = 
   .panel {
     height: var(--panel-size);
     overflow-y: scroll;
+  }
+  .me-error {
+    position: absolute;
+    bottom: var(--bar-size);
+    left: 0;
+    width: 100%;
+    padding: .2em 1em;
+    text-align: center;
+    font-size: .9em;
+    color: darkred;
+    background: #FEE;
   }
   .bar {
     width: 100%;

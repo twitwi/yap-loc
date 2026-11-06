@@ -50,6 +50,10 @@ export function representerNearestPointsInTrack(p: {lat: number, lon: number}, t
   return res
 }
 
+export function distanceToTrack(p: {lat: number, lon: number}, tree: KdTree) {
+  return tree.nearest(p as KdPoint, 1)[0][1]
+}
+
 export function computeCumulatedDPlus(track: Track & { cumulatedDPlus?: number[] }) {
   track.cumulatedDPlus = [0]
   let i = 1

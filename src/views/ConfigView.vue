@@ -70,6 +70,10 @@ function promptClearLocalEstimateLocations() {
         Enable Fullscreen
         <NSwitch v-model:value="local.enableFullscreen" :round="false"></NSwitch>
       </NSpace>
+      <NSpace>
+        Show my location (follow map)
+        <NSwitch v-model:value="local.showMyLocation" :round="false" title="position de ce téléphone, affichée seulement : jamais partagée ni enregistrée"></NSwitch>
+      </NSpace>
     </NCard>
     <NCard>
       <NSpace>

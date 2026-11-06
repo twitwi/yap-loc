@@ -1,7 +1,6 @@
 
 import Color from 'colorjs.io'
-import type { GlobalThemeOverrides } from 'naive-ui'
-import type { Type } from 'naive-ui/es/button/src/interface'
+import type { ButtonType, GlobalThemeOverrides } from 'naive-ui'
 import router from './router'
 
 export const hex = (c: Color) => '#'+c.to('srgb').toString().split(/[(%]/).slice(1, 4).map((s:string)=>Math.round((parseFloat(s.trim())*255/100)).toString(16).padStart(2, '0')).join('')
@@ -23,7 +22,7 @@ export function getTheme(colorString: string) {
 }
 
 export function bindRouterLink(name: string) {
-  const ifRoute = (name: string) => (router.currentRoute.value.name === name ? 'primary' : 'default') as Type
+  const ifRoute = (name: string): ButtonType => (router.currentRoute.value.name === name ? 'primary' : 'default')
   return {
     type: ifRoute(name),
     onClick: () => {

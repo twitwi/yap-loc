@@ -5,7 +5,8 @@ import { useLocalStore } from "./stores/persist"
 
 
 const NEW_PAD_SALT = '3c8740074076ba037a42c3289fbf4c421c0a3e2e72b3736f57566129325c8cee'
-const PROTECTEDTEXT_SERVER = '/prtctdtxt/' // 'http://127.0.0.1:7777/' //'https://www.protectedtext.com/' +
+const PROTECTEDTEXT_SERVER = '/prtctdtxt/' // 'http://127.0.0.1:7777/'
+//const PROTECTEDTEXT_SERVER = 'https://www.protectedtext.com/'
 
 export function safeHTMLText(txt: string) {
   return new Option(txt).innerHTML
